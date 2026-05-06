@@ -1,0 +1,24 @@
+<?php
+
+use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\WebhookReceiverController;
+use Illuminate\Support\Facades\Route;
+use Laravel\Fortify\Features;
+
+Route::inertia('/', 'Welcome', [
+    'canRegister' => Features::enabled(Features::registration()),
+])->name('home');
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+
+    Route::get('webhooks', [WebhookController::class, 'index'])->name('webhooks.index');
+    Route::post('webhooks', [WebhookController::class, 'store'])->name('webhooks.store');
+    Route::get('webhooks/{webhook}', [WebhookController::class, 'show'])->name('webhooks.show');
+    Route::delete('webhooks/{webhook}', [WebhookController::class, 'destroy'])->name('webhooks.destroy');
+});
+
+Route::any('webhook/{slug}', [WebhookReceiverController::class, 'receive'])
+    ->name('webhook.receive');
+
+require __DIR__.'/settings.php';
