@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { Webhook, Zap, Eye, Globe } from 'lucide-vue-next';
+import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { dashboard, login, register } from '@/routes';
+import { Head, Link } from '@inertiajs/vue3';
+import { Eye, Globe, Zap } from 'lucide-vue-next';
 
 withDefaults(
     defineProps<{
@@ -14,14 +15,16 @@ withDefaults(
 </script>
 
 <template>
-    <Head title="WebhookBin" />
+    <Head title="WebhookFort" />
 
     <div class="flex min-h-screen flex-col bg-background text-foreground">
         <!-- Nav -->
-        <header class="flex items-center justify-between border-b border-border px-6 py-4">
+        <header
+            class="flex items-center justify-between border-b border-border px-6 py-4"
+        >
             <div class="flex items-center gap-2 font-semibold">
-                <Webhook class="size-5 text-primary" />
-                <span>WebhookBin</span>
+                <AppLogoIcon class="size-5 text-black dark:text-white" />
+                <span>WebhookFort</span>
             </div>
             <nav class="flex items-center gap-3">
                 <Link
@@ -50,9 +53,13 @@ withDefaults(
         </header>
 
         <!-- Hero -->
-        <main class="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
-            <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-                <Webhook class="size-8 text-primary" />
+        <main
+            class="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center"
+        >
+            <div
+                class="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10"
+            >
+                <AppLogoIcon class="size-8 text-black dark:text-white" />
             </div>
 
             <div class="max-w-xl">
@@ -60,7 +67,9 @@ withDefaults(
                     Inspecione webhooks em tempo real
                 </h1>
                 <p class="mt-4 text-lg text-muted-foreground">
-                    Crie uma URL única, envie qualquer requisição HTTP para ela e visualize todos os dados — método, headers, payload — instantaneamente no painel.
+                    Crie uma URL única, envie qualquer requisição HTTP para ela
+                    e visualize todos os dados — método, headers, payload —
+                    instantaneamente no painel.
                 </p>
             </div>
 
@@ -82,26 +91,41 @@ withDefaults(
 
             <!-- Features -->
             <div class="mt-8 grid max-w-2xl gap-4 sm:grid-cols-3">
-                <div class="rounded-xl border border-border bg-card p-5 text-left">
+                <div
+                    class="rounded-xl border border-border bg-card p-5 text-left"
+                >
                     <Globe class="mb-3 size-5 text-primary" />
                     <p class="font-semibold">URL dedicada</p>
-                    <p class="mt-1 text-sm text-muted-foreground">Cada webhook tem uma URL única pronta para receber qualquer verbo HTTP.</p>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Cada webhook tem uma URL única pronta para receber
+                        qualquer verbo HTTP.
+                    </p>
                 </div>
-                <div class="rounded-xl border border-border bg-card p-5 text-left">
+                <div
+                    class="rounded-xl border border-border bg-card p-5 text-left"
+                >
                     <Zap class="mb-3 size-5 text-primary" />
                     <p class="font-semibold">Tempo real</p>
-                    <p class="mt-1 text-sm text-muted-foreground">Requests aparecem automaticamente no painel sem precisar recarregar.</p>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Requests aparecem automaticamente no painel sem precisar
+                        recarregar.
+                    </p>
                 </div>
-                <div class="rounded-xl border border-border bg-card p-5 text-left">
+                <div
+                    class="rounded-xl border border-border bg-card p-5 text-left"
+                >
                     <Eye class="mb-3 size-5 text-primary" />
                     <p class="font-semibold">Inspeção completa</p>
-                    <p class="mt-1 text-sm text-muted-foreground">Veja método, IP, headers e payload formatado de cada requisição recebida.</p>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Veja método, IP, headers e payload formatado de cada
+                        requisição recebida.
+                    </p>
                 </div>
             </div>
         </main>
 
         <footer class="py-6 text-center text-xs text-muted-foreground">
-            WebhookBin &copy; {{ new Date().getFullYear() }}
+            WebhookFort &copy; {{ new Date().getFullYear() }}
         </footer>
     </div>
 </template>
