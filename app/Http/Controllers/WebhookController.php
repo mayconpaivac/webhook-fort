@@ -47,9 +47,9 @@ class WebhookController extends Controller
         return redirect()->route('webhooks.index');
     }
 
-    public function show(Request $request, Webhook $webhook): Response
+    public function show(Request $request, string $slug): Response
     {
-        abort_unless($webhook->user_id === $request->user()->id, 403);
+        $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();
 
         $logs = $webhook->logs()
             ->latest()
@@ -61,18 +61,17 @@ class WebhookController extends Controller
         ]);
     }
 
-    public function destroy(Request $request, Webhook $webhook): RedirectResponse
+    public function destroy(Request $request, string $slug): RedirectResponse
     {
-        abort_unless($webhook->user_id === $request->user()->id, 403);
-
+        $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();
         $webhook->delete();
 
         return redirect()->route('webhooks.index');
     }
 
-    public function destroyLog(Request $request, Webhook $webhook, WebhookLog $log): RedirectResponse
+    public function destroyLog(Request $request, string $slug, WebhookLog $log): RedirectResponse
     {
-        abort_unless($webhook->user_id === $request->user()->id, 403);
+        $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();
         abort_unless($log->webhook_id === $webhook->id, 404);
 
         $log->delete();

@@ -2,6 +2,8 @@
 import { Head, router, setLayoutProps, usePoll } from '@inertiajs/vue3';
 import { Clock, Copy, Check, Globe, Inbox, Trash2 } from 'lucide-vue-next';
 import { ref, computed, watch } from 'vue';
+import VueJsonPretty from 'vue-json-pretty';
+import 'vue-json-pretty/lib/styles.css';
 import { index, show, destroyLog } from '@/actions/App/Http/Controllers/WebhookController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,7 +52,6 @@ const selectedLog = computed(
     () => logs.data.find((l) => l.id === selectedLogId.value) ?? null,
 );
 
-// When poll brings new logs, auto-select the latest if user has no selection
 watch(
     () => logs.data,
     (data) => {
@@ -100,23 +101,17 @@ function formatDateShort(date: string) {
     }).format(new Date(date));
 }
 
-function tryPrettyJson(value: string | null) {
+function tryParseJson(value: string | null): unknown | null {
     if (!value) return null;
     try {
-        return JSON.stringify(JSON.parse(value), null, 2);
+        return JSON.parse(value);
     } catch {
-        return value;
+        return null;
     }
 }
 
-function isJson(value: string | null) {
-    if (!value) return false;
-    try {
-        JSON.parse(value);
-        return true;
-    } catch {
-        return false;
-    }
+function isJson(value: string | null): boolean {
+    return tryParseJson(value) !== null;
 }
 
 function copyUrl() {
@@ -143,10 +138,7 @@ function deleteLog(log: WebhookLog) {
 
 function copyPayload() {
     if (!selectedLog.value?.payload) return;
-    const text = isJson(selectedLog.value.payload)
-        ? tryPrettyJson(selectedLog.value.payload) ?? selectedLog.value.payload
-        : selectedLog.value.payload;
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(selectedLog.value.payload);
     copiedPayload.value = true;
     setTimeout(() => (copiedPayload.value = false), 2000);
 }
@@ -156,12 +148,14 @@ const webhookUrl = `${window.location.origin}/webhook/${webhook.slug}`;
 const hasQueryParams = computed(
     () => selectedLog.value?.query_params && Object.keys(selectedLog.value.query_params).length > 0,
 );
+
+const parsedPayload = computed(() => tryParseJson(selectedLog.value?.payload ?? null));
 </script>
 
 <template>
     <Head :title="webhook.name" />
 
-    <div class="flex h-full flex-1 flex-col overflow-hidden">
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
         <!-- Top bar -->
         <div class="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
             <Globe class="size-4 shrink-0 text-muted-foreground" />
@@ -182,44 +176,47 @@ const hasQueryParams = computed(
         </div>
 
         <!-- Split panel -->
-        <div v-else class="flex min-h-0 flex-1">
+        <div v-else class="flex min-h-0 flex-1 overflow-hidden">
+
             <!-- Left: request list -->
-            <div class="flex w-72 shrink-0 flex-col overflow-y-auto border-r border-border">
-                <div
-                    v-for="log in logs.data"
-                    :key="log.id"
-                    class="group/log cursor-pointer border-b border-border px-3 py-3 transition-colors hover:bg-accent/40"
-                    :class="selectedLogId === log.id ? 'bg-accent' : ''"
-                    @click="selectedLogId = log.id"
-                >
-                    <div class="flex items-center gap-2">
-                        <span
-                            :class="methodColor(log.method)"
-                            class="inline-flex shrink-0 items-center rounded border px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase"
-                        >
-                            {{ log.method }}
-                        </span>
-                        <span class="truncate font-mono text-xs text-muted-foreground">
-                            /{{ webhook.slug }}
-                        </span>
-                    </div>
-                    <div class="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
-                        <Clock class="size-3 shrink-0" />
-                        <span>{{ formatDateShort(log.created_at) }}</span>
-                        <span v-if="log.ip_address" class="truncate">· {{ log.ip_address }}</span>
-                        <button
-                            type="button"
-                            class="ml-auto shrink-0 rounded p-0.5 text-muted-foreground/50 opacity-0 transition-opacity hover:text-destructive group-hover/log:opacity-100"
-                            title="Deletar request"
-                            @click.stop="deleteLog(log)"
-                        >
-                            <Trash2 class="size-3" />
-                        </button>
+            <div class="flex w-72 shrink-0 flex-col overflow-hidden border-r border-border">
+                <div class="flex-1 overflow-y-auto">
+                    <div
+                        v-for="log in logs.data"
+                        :key="log.id"
+                        class="group/log cursor-pointer border-b border-border px-3 py-3 transition-colors hover:bg-accent/40"
+                        :class="selectedLogId === log.id ? 'bg-accent' : ''"
+                        @click="selectedLogId = log.id"
+                    >
+                        <div class="flex items-center gap-2">
+                            <span
+                                :class="methodColor(log.method)"
+                                class="inline-flex shrink-0 items-center rounded border px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase"
+                            >
+                                {{ log.method }}
+                            </span>
+                            <span class="truncate font-mono text-xs text-muted-foreground">
+                                /{{ webhook.slug }}
+                            </span>
+                        </div>
+                        <div class="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                            <Clock class="size-3 shrink-0" />
+                            <span>{{ formatDateShort(log.created_at) }}</span>
+                            <span v-if="log.ip_address" class="truncate">· {{ log.ip_address }}</span>
+                            <button
+                                type="button"
+                                class="ml-auto shrink-0 rounded p-0.5 text-muted-foreground/50 opacity-0 transition-opacity hover:text-destructive group-hover/log:opacity-100"
+                                title="Deletar request"
+                                @click.stop="deleteLog(log)"
+                            >
+                                <Trash2 class="size-3" />
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Pagination -->
-                <div v-if="logs.last_page > 1" class="flex items-center justify-between border-t border-border p-2">
+                <div v-if="logs.last_page > 1" class="flex shrink-0 items-center justify-between border-t border-border p-2">
                     <Button
                         variant="ghost"
                         size="sm"
@@ -243,8 +240,8 @@ const hasQueryParams = computed(
             </div>
 
             <!-- Right: request detail -->
-            <div v-if="selectedLog" class="flex min-w-0 flex-1 flex-col overflow-y-auto">
-                <!-- Detail header -->
+            <div v-if="selectedLog" class="flex min-w-0 flex-1 flex-col overflow-hidden">
+                <!-- Detail header — fixed -->
                 <div class="flex shrink-0 items-center gap-3 border-b border-border px-5 py-3">
                     <span
                         :class="methodColor(selectedLog.method)"
@@ -265,8 +262,8 @@ const hasQueryParams = computed(
                     </Button>
                 </div>
 
-                <!-- Sections -->
-                <div class="divide-y divide-border">
+                <!-- Scrollable sections -->
+                <div class="flex-1 divide-y divide-border overflow-y-auto">
 
                     <!-- Meta -->
                     <div class="px-5 py-4">
@@ -305,7 +302,7 @@ const hasQueryParams = computed(
                     <div class="px-5 py-4">
                         <div class="mb-3 flex items-center gap-2">
                             <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Payload</p>
-                            <Badge v-if="isJson(selectedLog.payload)" variant="outline" class="text-[10px]">JSON</Badge>
+                            <Badge v-if="parsedPayload !== null" variant="outline" class="text-[10px]">JSON</Badge>
                             <Button
                                 v-if="selectedLog.payload"
                                 variant="ghost"
@@ -318,7 +315,17 @@ const hasQueryParams = computed(
                                 <Copy v-else class="size-3" />
                             </Button>
                         </div>
-                        <pre v-if="selectedLog.payload" class="overflow-auto rounded-lg bg-muted/60 p-3 font-mono text-xs leading-relaxed">{{ tryPrettyJson(selectedLog.payload) }}</pre>
+
+                        <div v-if="parsedPayload !== null" class="rounded-lg bg-muted/60 p-3">
+                            <VueJsonPretty
+                                :data="parsedPayload"
+                                :deep="3"
+                                :show-line="false"
+                                :show-double-quotes="true"
+                                class="text-xs"
+                            />
+                        </div>
+                        <pre v-else-if="selectedLog.payload" class="overflow-auto rounded-lg bg-muted/60 p-3 font-mono text-xs leading-relaxed">{{ selectedLog.payload }}</pre>
                         <p v-else class="text-xs italic text-muted-foreground">Sem payload</p>
                     </div>
                 </div>
