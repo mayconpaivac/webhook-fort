@@ -147,18 +147,23 @@ function copyUrl() {
 function deleteLog(log: WebhookLog) {
     const isSelected = selectedLogId.value === log.sqid;
     const currentIndex = logs.data.findIndex((l) => l.sqid === log.sqid);
-    const next =
-        logs.data[currentIndex + 1] ?? logs.data[currentIndex - 1] ?? null;
+    const next = logs.data[currentIndex + 1] ?? logs.data[currentIndex - 1] ?? null;
 
-    router.delete(destroyLog({ slug: webhook.slug, log: log.sqid }).url, {
-        preserveScroll: true,
-        only: ['logs'],
-        onSuccess: () => {
-            if (isSelected) {
-                selectLog(next?.sqid ?? null);
-            }
-        },
-    });
+    if (isSelected) {
+        selectLog(next?.sqid ?? null);
+    }
+
+    router
+        .optimistic((props) => ({
+            logs: {
+                ...props.logs,
+                data: props.logs.data.filter((l: WebhookLog) => l.sqid !== log.sqid),
+            },
+        }))
+        .delete(destroyLog({ slug: webhook.slug, log: log.sqid }).url, {
+            preserveScroll: true,
+            only: ['logs'],
+        });
 }
 
 function copyPayload() {
