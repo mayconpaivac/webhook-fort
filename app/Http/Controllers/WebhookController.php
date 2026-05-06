@@ -47,7 +47,7 @@ class WebhookController extends Controller
         return redirect()->route('webhooks.index');
     }
 
-    public function show(Request $request, string $slug): Response
+    public function show(Request $request, string $slug, ?int $log = null): Response
     {
         $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();
 
@@ -58,6 +58,7 @@ class WebhookController extends Controller
         return Inertia::render('webhooks/Show', [
             'webhook' => $webhook,
             'logs' => $logs,
+            'logId' => $log,
         ]);
     }
 

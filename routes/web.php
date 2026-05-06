@@ -14,12 +14,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('webhooks', [WebhookController::class, 'index'])->name('webhooks.index');
     Route::post('webhooks', [WebhookController::class, 'store'])->name('webhooks.store');
-    Route::get('webhooks/{slug}', [WebhookController::class, 'show'])->name('webhooks.show');
+    Route::get('webhooks/{slug}/{log?}', [WebhookController::class, 'show'])->name('webhooks.show');
     Route::delete('webhooks/{slug}', [WebhookController::class, 'destroy'])->name('webhooks.destroy');
     Route::delete('webhooks/{slug}/logs/{log}', [WebhookController::class, 'destroyLog'])->name('webhooks.logs.destroy');
 });
 
-Route::any('webhook/{slug}', [WebhookReceiverController::class, 'receive'])
+Route::any('w/{slug}', [WebhookReceiverController::class, 'receive'])
     ->name('webhook.receive');
 
 require __DIR__.'/settings.php';

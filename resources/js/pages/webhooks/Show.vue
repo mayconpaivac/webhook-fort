@@ -34,9 +34,10 @@ interface Paginator {
     prev_page_url: string | null;
 }
 
-const { webhook, logs } = defineProps<{
+const { webhook, logs, logId } = defineProps<{
     webhook: Webhook;
     logs: Paginator;
+    logId: number | null;
 }>();
 
 setLayoutProps({
@@ -46,17 +47,25 @@ setLayoutProps({
     ],
 });
 
-const selectedLogId = ref<number | null>(logs.data[0]?.id ?? null);
+const initialLogId = logId && logs.data.find((l) => l.id === logId) ? logId : (logs.data[0]?.id ?? null);
+
+const selectedLogId = ref<number | null>(initialLogId);
 
 const selectedLog = computed(
     () => logs.data.find((l) => l.id === selectedLogId.value) ?? null,
 );
 
+function selectLog(id: number | null) {
+    selectedLogId.value = id;
+    const base = `/webhooks/${webhook.slug}`;
+    window.history.replaceState(null, '', id !== null ? `${base}/${id}` : base);
+}
+
 watch(
     () => logs.data,
     (data) => {
         if (!selectedLogId.value || !data.find((l) => l.id === selectedLogId.value)) {
-            selectedLogId.value = data[0]?.id ?? null;
+            selectLog(data[0]?.id ?? null);
         }
     },
 );
@@ -130,7 +139,7 @@ function deleteLog(log: WebhookLog) {
         only: ['logs'],
         onSuccess: () => {
             if (isSelected) {
-                selectedLogId.value = next?.id ?? null;
+                selectLog(next?.id ?? null);
             }
         },
     });
@@ -186,7 +195,7 @@ const parsedPayload = computed(() => tryParseJson(selectedLog.value?.payload ?? 
                         :key="log.id"
                         class="group/log cursor-pointer border-b border-border px-3 py-3 transition-colors hover:bg-accent/40"
                         :class="selectedLogId === log.id ? 'bg-accent' : ''"
-                        @click="selectedLogId = log.id"
+                        @click="selectLog(log.id)"
                     >
                         <div class="flex items-center gap-2">
                             <span
