@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Webhook;
+use App\Models\WebhookLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -67,5 +68,15 @@ class WebhookController extends Controller
         $webhook->delete();
 
         return redirect()->route('webhooks.index');
+    }
+
+    public function destroyLog(Request $request, Webhook $webhook, WebhookLog $log): RedirectResponse
+    {
+        abort_unless($webhook->user_id === $request->user()->id, 403);
+        abort_unless($log->webhook_id === $webhook->id, 404);
+
+        $log->delete();
+
+        return back();
     }
 }

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Head, router, setLayoutProps, usePoll } from '@inertiajs/vue3';
-import { Clock, Copy, Check, Globe, Inbox } from 'lucide-vue-next';
+import { Clock, Copy, Check, Globe, Inbox, Trash2 } from 'lucide-vue-next';
 import { ref, computed, watch } from 'vue';
-import { index, show } from '@/actions/App/Http/Controllers/WebhookController';
+import { index, show, destroyLog } from '@/actions/App/Http/Controllers/WebhookController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -125,6 +125,22 @@ function copyUrl() {
     setTimeout(() => (copiedUrl.value = false), 2000);
 }
 
+function deleteLog(log: WebhookLog) {
+    const isSelected = selectedLogId.value === log.id;
+    const currentIndex = logs.data.findIndex((l) => l.id === log.id);
+    const next = logs.data[currentIndex + 1] ?? logs.data[currentIndex - 1] ?? null;
+
+    router.delete(destroyLog({ webhook: webhook.id, log: log.id }).url, {
+        preserveScroll: true,
+        only: ['logs'],
+        onSuccess: () => {
+            if (isSelected) {
+                selectedLogId.value = next?.id ?? null;
+            }
+        },
+    });
+}
+
 function copyPayload() {
     if (!selectedLog.value?.payload) return;
     const text = isJson(selectedLog.value.payload)
@@ -172,7 +188,7 @@ const hasQueryParams = computed(
                 <div
                     v-for="log in logs.data"
                     :key="log.id"
-                    class="cursor-pointer border-b border-border px-3 py-3 transition-colors hover:bg-accent/40"
+                    class="group/log cursor-pointer border-b border-border px-3 py-3 transition-colors hover:bg-accent/40"
                     :class="selectedLogId === log.id ? 'bg-accent' : ''"
                     @click="selectedLogId = log.id"
                 >
@@ -191,6 +207,14 @@ const hasQueryParams = computed(
                         <Clock class="size-3 shrink-0" />
                         <span>{{ formatDateShort(log.created_at) }}</span>
                         <span v-if="log.ip_address" class="truncate">· {{ log.ip_address }}</span>
+                        <button
+                            type="button"
+                            class="ml-auto shrink-0 rounded p-0.5 text-muted-foreground/50 opacity-0 transition-opacity hover:text-destructive group-hover/log:opacity-100"
+                            title="Deletar request"
+                            @click.stop="deleteLog(log)"
+                        >
+                            <Trash2 class="size-3" />
+                        </button>
                     </div>
                 </div>
 
@@ -230,6 +254,15 @@ const hasQueryParams = computed(
                     </span>
                     <span class="font-mono text-sm text-muted-foreground">/webhook/{{ webhook.slug }}</span>
                     <span class="ml-auto text-xs text-muted-foreground">{{ formatDate(selectedLog.created_at) }}</span>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        class="size-7 shrink-0 text-muted-foreground hover:text-destructive"
+                        title="Deletar request"
+                        @click="deleteLog(selectedLog)"
+                    >
+                        <Trash2 class="size-4" />
+                    </Button>
                 </div>
 
                 <!-- Sections -->
