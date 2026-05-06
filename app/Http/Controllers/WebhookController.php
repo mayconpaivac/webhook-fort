@@ -47,7 +47,7 @@ class WebhookController extends Controller
         return redirect()->route('webhooks.index');
     }
 
-    public function show(Request $request, string $slug, ?int $log = null): Response
+    public function show(Request $request, string $slug, ?string $log = null): Response
     {
         $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();
 
@@ -73,6 +73,7 @@ class WebhookController extends Controller
     public function destroyLog(Request $request, string $slug, WebhookLog $log): RedirectResponse
     {
         $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();
+
         abort_unless($log->webhook_id === $webhook->id, 404);
 
         $log->delete();

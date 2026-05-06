@@ -17,6 +17,8 @@
         "laravel-best-practices",
         "wayfinder-development",
         "pest-testing",
+        "inertia-vue-development",
+        "tailwindcss-development",
         "spatie-javascript",
         "spatie-laravel-php",
         "spatie-security",

@@ -5,11 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use RedExplosion\Sqids\Concerns\HasSqids;
 
 class WebhookLog extends Model
 {
     /** @use HasFactory<\Database\Factories\WebhookLogFactory> */
-    use HasFactory;
+    use HasFactory, HasSqids;
 
     protected $fillable = [
         'webhook_id',
