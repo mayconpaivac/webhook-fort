@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\WebhookLog;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -45,6 +46,7 @@ class WebhookController extends Controller
 
         $logs = $webhook->logs()
             ->latest()
+            ->select(['id', 'method', 'ip_address', 'created_at', 'read_at'])
             ->paginate(50);
 
         return Inertia::render('webhooks/Show', [
@@ -52,6 +54,14 @@ class WebhookController extends Controller
             'logs' => $logs,
             'logId' => $log,
         ]);
+    }
+
+    public function showLog(Request $request, string $slug, WebhookLog $log): JsonResponse
+    {
+        $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();
+        abort_unless($log->webhook_id === $webhook->id, 404);
+
+        return response()->json($log);
     }
 
     public function destroy(Request $request, string $slug): RedirectResponse

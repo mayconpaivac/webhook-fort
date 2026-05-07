@@ -17,6 +17,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('webhooks', [WebhookController::class, 'store'])->name('webhooks.store');
     Route::get('webhooks/{slug}/{sqid?}', [WebhookController::class, 'show'])->name('webhooks.show');
     Route::delete('webhooks/{slug}', [WebhookController::class, 'destroy'])->name('webhooks.destroy');
+    Route::get('webhooks/{slug}/logs/{log}', [WebhookController::class, 'showLog'])->name('webhooks.logs.show');
     Route::delete('webhooks/{slug}/logs', [WebhookController::class, 'destroyLogs'])->name('webhooks.logs.destroyAll');
     Route::delete('webhooks/{slug}/logs/{log}', [WebhookController::class, 'destroyLog'])->name('webhooks.logs.destroy');
     Route::patch('webhooks/{slug}/logs/{log}/read', [WebhookController::class, 'markRead'])->name('webhooks.logs.markRead');

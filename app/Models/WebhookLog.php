@@ -24,6 +24,8 @@ class WebhookLog extends Model
         'read_at',
     ];
 
+    protected $hidden = ['id'];
+
     protected function casts(): array
     {
         return [

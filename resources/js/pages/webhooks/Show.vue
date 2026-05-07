@@ -5,12 +5,13 @@ import {
     index,
     markRead,
     show,
+    showLog,
 } from '@/actions/App/Http/Controllers/WebhookController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { receive as webhookReceiveUrl } from '@/routes/webhook';
-import { Head, router, setLayoutProps, usePoll } from '@inertiajs/vue3';
-import { Check, Clock, Copy, Globe, Inbox, Trash2 } from 'lucide-vue-next';
+import { Head, router, setLayoutProps, useHttp, usePoll } from '@inertiajs/vue3';
+import { Check, Clock, Copy, Globe, Inbox, Loader2, Trash2 } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
 import VueJsonPretty from 'vue-json-pretty';
 import 'vue-json-pretty/lib/styles.css';
@@ -23,7 +24,15 @@ interface Webhook {
     created_at: string;
 }
 
-interface WebhookLog {
+interface WebhookLogSummary {
+    sqid: string;
+    method: string;
+    ip_address: string | null;
+    created_at: string;
+    read_at: string | null;
+}
+
+interface WebhookLogDetail {
     sqid: string;
     method: string;
     ip_address: string | null;
@@ -36,7 +45,7 @@ interface WebhookLog {
 }
 
 interface Paginator {
-    data: WebhookLog[];
+    data: WebhookLogSummary[];
     current_page: number;
     last_page: number;
     next_page_url: string | null;
@@ -67,6 +76,29 @@ const selectedLog = computed(
     () => logs.data.find((l) => l.sqid === selectedLogId.value) ?? null,
 );
 
+const selectedLogDetail = ref<WebhookLogDetail | null>(null);
+const detailCache = new Map<string, WebhookLogDetail>();
+const http = useHttp({});
+
+function fetchLogDetail(sqid: string) {
+    if (detailCache.has(sqid)) {
+        if (selectedLogId.value === sqid) {
+            selectedLogDetail.value = detailCache.get(sqid)!;
+        }
+        return;
+    }
+
+    http.get(showLog({ slug: webhook.slug, log: sqid }).url, {
+        onSuccess: (detail) => {
+            const typedDetail = detail as WebhookLogDetail;
+            detailCache.set(sqid, typedDetail);
+            if (selectedLogId.value === sqid) {
+                selectedLogDetail.value = typedDetail;
+            }
+        },
+    });
+}
+
 function markAsRead(sqid: string | null) {
     if (!sqid) return;
     const log = logs.data.find((l) => l.sqid === sqid);
@@ -76,7 +108,7 @@ function markAsRead(sqid: string | null) {
         .optimistic((props) => ({
             logs: {
                 ...props.logs,
-                data: props.logs.data.map((l: WebhookLog) =>
+                data: props.logs.data.map((l: WebhookLogSummary) =>
                     l.sqid === sqid
                         ? { ...l, read_at: new Date().toISOString() }
                         : l,
@@ -95,12 +127,17 @@ function markAsRead(sqid: string | null) {
 
 function selectLog(id: string | null) {
     selectedLogId.value = id;
+    selectedLogDetail.value = null;
     const base = `/webhooks/${webhook.slug}`;
     window.history.replaceState(null, '', id !== null ? `${base}/${id}` : base);
     markAsRead(id);
+    if (id) fetchLogDetail(id);
 }
 
-onMounted(() => markAsRead(selectedLogId.value));
+onMounted(() => {
+    markAsRead(selectedLogId.value);
+    if (selectedLogId.value) fetchLogDetail(selectedLogId.value);
+});
 
 watch(
     () => logs.data,
@@ -177,7 +214,7 @@ function copyUrl() {
     setTimeout(() => (copiedUrl.value = false), 2000);
 }
 
-function deleteLog(log: WebhookLog) {
+function deleteLog(log: WebhookLogSummary) {
     const isSelected = selectedLogId.value === log.sqid;
     const currentIndex = logs.data.findIndex((l) => l.sqid === log.sqid);
     const next =
@@ -192,7 +229,7 @@ function deleteLog(log: WebhookLog) {
             logs: {
                 ...props.logs,
                 data: props.logs.data.filter(
-                    (l: WebhookLog) => l.sqid !== log.sqid,
+                    (l: WebhookLogSummary) => l.sqid !== log.sqid,
                 ),
             },
         }))
@@ -216,8 +253,8 @@ function deleteAllLogs() {
 }
 
 function copyPayload() {
-    if (!selectedLog.value?.payload) return;
-    navigator.clipboard.writeText(selectedLog.value.payload);
+    if (!selectedLogDetail.value?.payload) return;
+    navigator.clipboard.writeText(selectedLogDetail.value.payload);
     copiedPayload.value = true;
     setTimeout(() => (copiedPayload.value = false), 2000);
 }
@@ -226,12 +263,12 @@ const webhookUrl = `${window.location.origin}${webhookReceiveUrl({ slug: webhook
 
 const hasQueryParams = computed(
     () =>
-        selectedLog.value?.query_params &&
-        Object.keys(selectedLog.value.query_params).length > 0,
+        selectedLogDetail.value?.query_params &&
+        Object.keys(selectedLogDetail.value.query_params).length > 0,
 );
 
 const parsedPayload = computed(() =>
-    tryParseJson(selectedLog.value?.payload ?? null),
+    tryParseJson(selectedLogDetail.value?.payload ?? null),
 );
 </script>
 
@@ -414,6 +451,15 @@ const parsedPayload = computed(() =>
 
                 <!-- Scrollable sections -->
                 <div class="flex-1 divide-y divide-border overflow-y-auto">
+                    <!-- Loading state -->
+                    <div
+                        v-if="!selectedLogDetail"
+                        class="flex flex-1 items-center justify-center py-16"
+                    >
+                        <Loader2 class="size-5 animate-spin text-muted-foreground" />
+                    </div>
+
+                    <template v-else>
                     <!-- Meta -->
                     <div class="px-5 py-4">
                         <p
@@ -425,12 +471,12 @@ const parsedPayload = computed(() =>
                             class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-mono text-xs"
                         >
                             <span class="text-muted-foreground">IP</span>
-                            <span>{{ selectedLog.ip_address ?? '—' }}</span>
+                            <span>{{ selectedLogDetail.ip_address ?? '—' }}</span>
                             <span class="text-muted-foreground"
                                 >User-Agent</span
                             >
                             <span class="break-all">{{
-                                selectedLog.user_agent ?? '—'
+                                selectedLogDetail.user_agent ?? '—'
                             }}</span>
                         </div>
                     </div>
@@ -446,7 +492,7 @@ const parsedPayload = computed(() =>
                             class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-mono text-xs"
                         >
                             <template
-                                v-for="(value, key) in selectedLog.query_params"
+                                v-for="(value, key) in selectedLogDetail.query_params"
                                 :key="key"
                             >
                                 <span class="text-primary">{{ key }}</span>
@@ -468,7 +514,7 @@ const parsedPayload = computed(() =>
                             class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-mono text-xs"
                         >
                             <template
-                                v-for="(value, key) in selectedLog.headers"
+                                v-for="(value, key) in selectedLogDetail.headers"
                                 :key="key"
                             >
                                 <span class="shrink-0 text-primary">{{
@@ -496,7 +542,7 @@ const parsedPayload = computed(() =>
                                 >JSON</Badge
                             >
                             <Button
-                                v-if="selectedLog.payload"
+                                v-if="selectedLogDetail.payload"
                                 variant="ghost"
                                 size="icon"
                                 class="ml-auto size-6"
@@ -528,14 +574,15 @@ const parsedPayload = computed(() =>
                             />
                         </div>
                         <pre
-                            v-else-if="selectedLog.payload"
+                            v-else-if="selectedLogDetail.payload"
                             class="overflow-auto rounded-lg bg-muted/60 p-3 font-mono text-xs leading-relaxed"
-                            >{{ selectedLog.payload }}</pre
+                            >{{ selectedLogDetail.payload }}</pre
                         >
                         <p v-else class="text-xs text-muted-foreground italic">
                             Sem payload
                         </p>
                     </div>
+                    </template>
                 </div>
             </div>
         </div>

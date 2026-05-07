@@ -132,6 +132,25 @@ it('cascades delete logs when webhook deleted', function () {
 
 // --- read_at ---
 
+it('returns full log detail as json', function () {
+    $webhook = Webhook::factory()->for($this->user)->create();
+    $log = WebhookLog::factory()->for($webhook)->create();
+
+    $this->actingAs($this->user)
+        ->getJson("/webhooks/{$webhook->slug}/logs/{$log->sqid}")
+        ->assertOk()
+        ->assertJsonStructure(['sqid', 'method', 'headers', 'payload', 'user_agent']);
+});
+
+it('forbids fetching log detail for non-owner', function () {
+    $webhook = Webhook::factory()->for(User::factory())->create();
+    $log = WebhookLog::factory()->for($webhook)->create();
+
+    $this->actingAs($this->user)
+        ->getJson("/webhooks/{$webhook->slug}/logs/{$log->sqid}")
+        ->assertNotFound();
+});
+
 it('marks a log as read', function () {
     $webhook = Webhook::factory()->for($this->user)->create();
     $log = WebhookLog::factory()->for($webhook)->create(['read_at' => null]);
