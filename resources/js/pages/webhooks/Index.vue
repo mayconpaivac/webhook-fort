@@ -120,7 +120,7 @@ function formatDate(date: string) {
                             <Input
                                 id="name"
                                 v-model="form.name"
-                                placeholder="meu-webhook"
+                                placeholder="Meu Webhook"
                                 autofocus
                             />
                             <p

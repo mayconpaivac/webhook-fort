@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
@@ -8,11 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
+import { Form, Head } from '@inertiajs/vue3';
 
 defineOptions({
     layout: {
-        title: 'Forgot password',
-        description: 'Enter your email to receive a password reset link',
+        title: 'Esqueci minha senha',
+        description:
+            'Digite seu e-mail para receber um link de redefinição de senha',
     },
 });
 
@@ -22,7 +23,7 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Forgot password" />
+    <Head title="Esqueci minha senha" />
 
     <div
         v-if="status"
@@ -34,14 +35,14 @@ defineProps<{
     <div class="space-y-6">
         <Form v-bind="email.form()" v-slot="{ errors, processing }">
             <div class="grid gap-2">
-                <Label for="email">Email address</Label>
+                <Label for="email">E-mail</Label>
                 <Input
                     id="email"
                     type="email"
                     name="email"
                     autocomplete="off"
                     autofocus
-                    placeholder="email@example.com"
+                    placeholder="Digite seu e-mail"
                 />
                 <InputError :message="errors.email" />
             </div>
@@ -53,14 +54,14 @@ defineProps<{
                     data-test="email-password-reset-link-button"
                 >
                     <Spinner v-if="processing" />
-                    Email password reset link
+                    Enviar link de redefinição de senha
                 </Button>
             </div>
         </Form>
 
         <div class="space-x-1 text-center text-sm text-muted-foreground">
-            <span>Or, return to</span>
-            <TextLink :href="login()">log in</TextLink>
+            <span>Ou, volte para</span>
+            <TextLink :href="login()">entrar</TextLink>
         </div>
     </div>
 </template>

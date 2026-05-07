@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
 import Heading from '@/components/Heading.vue';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -9,18 +8,19 @@ import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
+import { Link } from '@inertiajs/vue3';
 
 const sidebarNavItems: NavItem[] = [
     {
-        title: 'Profile',
+        title: 'Perfil',
         href: editProfile(),
     },
     {
-        title: 'Security',
+        title: 'Segurança',
         href: editSecurity(),
     },
     {
-        title: 'Appearance',
+        title: 'Aparência',
         href: editAppearance(),
     },
 ];
@@ -31,15 +31,15 @@ const { isCurrentOrParentUrl } = useCurrentUrl();
 <template>
     <div class="px-4 py-6">
         <Heading
-            title="Settings"
-            description="Manage your profile and account settings"
+            title="Configurações"
+            description="Gerencie seu perfil e configurações de conta"
         />
 
         <div class="flex flex-col lg:flex-row lg:space-x-12">
             <aside class="w-full max-w-xl lg:w-48">
                 <nav
                     class="flex flex-col space-y-1 space-x-0"
-                    aria-label="Settings"
+                    aria-label="Configurações"
                 >
                     <Button
                         v-for="item in sidebarNavItems"
