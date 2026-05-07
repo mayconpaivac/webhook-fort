@@ -35,12 +35,12 @@ import {
     Loader2,
     Trash2,
 } from 'lucide-vue-next';
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import VueJsonPretty from 'vue-json-pretty';
+import 'vue-json-pretty/lib/styles.css';
 
 const listContainerEl = ref<HTMLDivElement | null>(null);
 const selectedItemEl = ref<HTMLDivElement | null>(null);
-import VueJsonPretty from 'vue-json-pretty';
-import 'vue-json-pretty/lib/styles.css';
 
 interface Webhook {
     id: number;
@@ -83,6 +83,8 @@ const { webhook, logs, logSelected } = defineProps<{
     logs: Paginator;
     logSelected?: WebhookLogDetail;
 }>();
+
+const latestLogSqid = ref<string | null>(null);
 
 setLayoutProps({
     breadcrumbs: [
@@ -148,13 +150,40 @@ onMounted(() => {
                 const container = listContainerEl.value;
                 const item = selectedItemEl.value;
                 container.scrollTop =
-                    item.offsetTop - container.clientHeight / 2 + item.clientHeight / 2;
+                    item.offsetTop -
+                    container.clientHeight / 2 +
+                    item.clientHeight / 2;
             }
         });
     }
 });
 
-usePoll(3000);
+usePoll(3000, {
+    onSuccess: (response) => {
+        if (response.props.logs?.data?.[0].sqid !== latestLogSqid.value) {
+            latestLogSqid.value = response.props.logs?.data?.[0].sqid ?? null;
+        }
+    },
+});
+
+const showNewBadge = ref(false);
+
+watch(latestLogSqid, (newVal, oldVal) => {
+    if (
+        (newVal &&
+            newVal !== oldVal &&
+            oldVal !== null &&
+            listContainerEl.value?.scrollTop) ||
+        0 > 200
+    ) {
+        showNewBadge.value = true;
+    }
+});
+
+function dismissNewBadge() {
+    showNewBadge.value = false;
+    listContainerEl.value?.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 const STORAGE_KEY = 'webhook-url-visible';
 const urlVisible = ref(localStorage.getItem(STORAGE_KEY) === 'true');
@@ -363,12 +392,35 @@ const parsedPayload = computed(() =>
                     </button>
                 </div>
 
-                <div ref="listContainerEl" class="flex-1 overflow-y-auto">
+                <div
+                    ref="listContainerEl"
+                    class="relative flex-1 overflow-y-auto"
+                >
+                    <!-- Floating new-request badge -->
+                    <div
+                        v-if="showNewBadge"
+                        class="pointer-events-none sticky top-2 z-10 flex justify-center"
+                    >
+                        <button
+                            type="button"
+                            class="pointer-events-auto flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500 px-3 py-1 text-[11px] font-semibold text-white shadow-lg transition-colors hover:bg-green-600"
+                            @click="dismissNewBadge"
+                        >
+                            <span class="size-1.5 rounded-full bg-white/70" />
+                            ↑ Nova requisição
+                        </button>
+                    </div>
+
                     <InfiniteScroll data="logs">
                         <div
                             v-for="log in logs.data"
                             :key="log.sqid"
-                            :ref="(el) => { if (log.sqid === logSelected?.sqid) selectedItemEl = el as HTMLDivElement; }"
+                            :ref="
+                                (el) => {
+                                    if (log.sqid === logSelected?.sqid)
+                                        selectedItemEl = el as HTMLDivElement;
+                                }
+                            "
                             class="group/log cursor-pointer border-b border-border px-3 py-3 transition-colors hover:bg-accent/40"
                             :class="[
                                 logSelected?.sqid === log.sqid
