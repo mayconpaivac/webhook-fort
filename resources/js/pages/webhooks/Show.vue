@@ -160,8 +160,11 @@ onMounted(() => {
 
 usePoll(3000, {
     onSuccess: (response) => {
-        if (response.props.logs?.data?.[0].sqid !== latestLogSqid.value) {
-            latestLogSqid.value = response.props.logs?.data?.[0].sqid ?? null;
+        const props = response.props as { logs?: { data: { sqid: string }[] } };
+        const firstSqid = props.logs?.data?.[0]?.sqid ?? null;
+
+        if (firstSqid !== latestLogSqid.value) {
+            latestLogSqid.value = firstSqid;
         }
     },
 });
