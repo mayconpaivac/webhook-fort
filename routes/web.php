@@ -22,7 +22,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('webhooks/{slug}/logs/{log}/read', [WebhookController::class, 'markRead'])->name('webhooks.logs.markRead');
 });
 
-Route::any('w/{slug}', [WebhookReceiverController::class, 'receive'])
-    ->name('webhook.receive');
+Route::any('w/{slug}/{token}', [WebhookReceiverController::class, 'receive'])->name('webhook.receive');
 
 require __DIR__.'/settings.php';

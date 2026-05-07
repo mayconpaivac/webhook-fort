@@ -39,14 +39,15 @@ it('creates a webhook with slug', function () {
     ]);
 });
 
-it('generates unique slug on conflict', function () {
+it('allows duplicate slugs with unique tokens', function () {
     Webhook::factory()->for($this->user)->create(['slug' => 'test']);
 
     $this->actingAs($this->user)
         ->post('/webhooks', ['name' => 'Test'])
         ->assertRedirect('/webhooks');
 
-    $this->assertDatabaseHas('webhooks', ['slug' => 'test-1']);
+    expect(Webhook::where('slug', 'test')->count())->toBe(2);
+    expect(Webhook::where('slug', 'test')->pluck('token')->unique()->count())->toBe(2);
 });
 
 it('shows webhook detail to owner', function () {
@@ -94,7 +95,7 @@ it('forbids delete for non-owner', function () {
 it('receives GET request and saves log', function () {
     $webhook = Webhook::factory()->create();
 
-    $this->get("/w/{$webhook->slug}")
+    $this->get("/w/{$webhook->slug}/{$webhook->token}")
         ->assertOk()
         ->assertJson(['ok' => true]);
 
@@ -107,7 +108,7 @@ it('receives GET request and saves log', function () {
 it('receives POST with JSON payload and saves log', function () {
     $webhook = Webhook::factory()->create();
 
-    $this->postJson("/w/{$webhook->slug}", ['event' => 'order.created'])
+    $this->postJson("/w/{$webhook->slug}/{$webhook->token}", ['event' => 'order.created'])
         ->assertOk();
 
     $log = WebhookLog::where('webhook_id', $webhook->id)->first();
@@ -117,7 +118,7 @@ it('receives POST with JSON payload and saves log', function () {
 });
 
 it('returns 404 for unknown slug', function () {
-    $this->post('/w/nonexistent')->assertNotFound();
+    $this->post('/w/nonexistent/invalid-token')->assertNotFound();
 });
 
 it('cascades delete logs when webhook deleted', function () {

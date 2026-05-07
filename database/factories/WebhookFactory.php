@@ -20,6 +20,7 @@ class WebhookFactory extends Factory
             'user_id' => User::factory(),
             'name' => $name,
             'slug' => Str::slug($name),
+            'token' => Str::uuid()->toString(),
         ];
     }
 }

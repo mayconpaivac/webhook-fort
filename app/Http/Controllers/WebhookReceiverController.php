@@ -8,9 +8,9 @@ use Illuminate\Http\Request;
 
 class WebhookReceiverController extends Controller
 {
-    public function receive(Request $request, string $slug): JsonResponse
+    public function receive(Request $request, string $slug, string $token): JsonResponse
     {
-        $webhook = Webhook::where('slug', $slug)->firstOrFail();
+        $webhook = Webhook::where('slug', $slug)->where('token', $token)->firstOrFail();
 
         $headers = collect($request->headers->all())
             ->mapWithKeys(fn ($value, $key) => [$key => implode(', ', $value)])

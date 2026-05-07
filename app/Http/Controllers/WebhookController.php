@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Webhook;
 use App\Models\WebhookLog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,17 +30,10 @@ class WebhookController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
-        $slug = Str::slug($validated['name']);
-        $baseSlug = $slug;
-        $count = 1;
-
-        while (Webhook::where('slug', $slug)->exists()) {
-            $slug = $baseSlug.'-'.$count++;
-        }
-
         $request->user()->webhooks()->create([
             'name' => $validated['name'],
-            'slug' => $slug,
+            'slug' => Str::slug($validated['name']),
+            'token' => Str::uuid()->toString(),
         ]);
 
         return redirect()->route('webhooks.index');

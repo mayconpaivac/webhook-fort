@@ -19,6 +19,7 @@ interface Webhook {
     id: number;
     name: string;
     slug: string;
+    token: string;
     created_at: string;
 }
 
@@ -221,7 +222,7 @@ function copyPayload() {
     setTimeout(() => (copiedPayload.value = false), 2000);
 }
 
-const webhookUrl = `${window.location.origin}${webhookReceiveUrl({ slug: webhook.slug }).url}`;
+const webhookUrl = `${window.location.origin}${webhookReceiveUrl({ slug: webhook.slug, token: webhook.token }).url}`;
 
 const hasQueryParams = computed(
     () =>

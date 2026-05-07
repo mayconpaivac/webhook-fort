@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\WebhookFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,10 +11,10 @@ use RedExplosion\Sqids\Concerns\HasSqids;
 
 class Webhook extends Model
 {
-    /** @use HasFactory<\Database\Factories\WebhookFactory> */
+    /** @use HasFactory<WebhookFactory> */
     use HasFactory, HasSqids;
 
-    protected $fillable = ['user_id', 'name', 'slug'];
+    protected $fillable = ['user_id', 'name', 'slug', 'token'];
 
     protected $appends = ['sqid'];
 
