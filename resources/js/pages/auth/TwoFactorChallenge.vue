@@ -49,7 +49,7 @@ const code = ref<string>('');
 </script>
 
 <template>
-    <Head title="Two-factor authentication" />
+    <Head title="Autenticação de dois fatores" />
 
     <div class="space-y-6">
         <template v-if="!showRecoveryInput">
