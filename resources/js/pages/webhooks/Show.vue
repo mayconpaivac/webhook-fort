@@ -28,6 +28,8 @@ import {
     Check,
     Clock,
     Copy,
+    Eye,
+    EyeOff,
     Globe,
     Inbox,
     Loader2,
@@ -142,6 +144,14 @@ onMounted(() => {
 });
 
 usePoll(3000);
+
+const STORAGE_KEY = 'webhook-url-visible';
+const urlVisible = ref(localStorage.getItem(STORAGE_KEY) === 'true');
+
+function toggleUrlVisible() {
+    urlVisible.value = !urlVisible.value;
+    localStorage.setItem(STORAGE_KEY, String(urlVisible.value));
+}
 
 const copiedUrl = ref(false);
 const copiedPayload = ref(false);
@@ -279,9 +289,21 @@ const parsedPayload = computed(() =>
             class="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3"
         >
             <Globe class="size-4 shrink-0 text-muted-foreground" />
-            <code class="flex-1 truncate font-mono text-sm">{{
-                webhookUrl
-            }}</code>
+            <code
+                class="flex-1 truncate font-mono text-sm transition-all"
+                :class="!urlVisible && 'blur-xs select-none'"
+                >{{ webhookUrl }}</code
+            >
+            <Button
+                variant="ghost"
+                size="icon"
+                class="size-7 shrink-0 text-muted-foreground"
+                :title="urlVisible ? 'Ocultar URL' : 'Mostrar URL'"
+                @click="toggleUrlVisible"
+            >
+                <EyeOff v-if="urlVisible" class="size-4" />
+                <Eye v-else class="size-4" />
+            </Button>
             <Button
                 variant="ghost"
                 size="icon"

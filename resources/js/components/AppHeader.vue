@@ -174,7 +174,9 @@ const rightNavItems: NavItem[] = [];
                                     {{ item.title }}
                                 </Link>
                                 <div
-                                    v-if="isCurrentUrl(item.href)"
+                                    v-if="
+                                        isCurrentUrl(item.href, undefined, true)
+                                    "
                                     class="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"
                                 ></div>
                             </NavigationMenuItem>
