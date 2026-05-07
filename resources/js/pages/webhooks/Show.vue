@@ -7,12 +7,19 @@ import {
 } from '@/actions/App/Http/Controllers/WebhookController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import app from '@/routes/app';
 import { receive as webhookReceiveUrl } from '@/routes/webhook';
 import {
     Head,
     InfiniteScroll,
-    Link,
     router,
     setLayoutProps,
     usePoll,
@@ -66,11 +73,10 @@ interface Paginator {
     prev_page_url: string | null;
 }
 
-const { webhook, logs, logSelected, latestLogSqid } = defineProps<{
+const { webhook, logs, logSelected } = defineProps<{
     webhook: Webhook;
     logs: Paginator;
     logSelected?: WebhookLogDetail;
-    latestLogSqid: string | null;
 }>();
 
 setLayoutProps({
@@ -135,11 +141,7 @@ onMounted(() => {
     }
 });
 
-usePoll(3000, { only: ['latestLogSqid'] });
-
-const hasNewRequests = computed(
-    () => latestLogSqid !== null && latestLogSqid !== logs.data[0]?.sqid,
-);
+usePoll(3000);
 
 const copiedUrl = ref(false);
 const copiedPayload = ref(false);
@@ -226,7 +228,14 @@ function deleteLog(log: WebhookLogSummary) {
         });
 }
 
+const confirmDeleteAll = ref(false);
+
 function deleteAllLogs() {
+    confirmDeleteAll.value = true;
+}
+
+function doDeleteAllLogs() {
+    confirmDeleteAll.value = false;
     router
         .optimistic<{ logs: Paginator }>((props) => ({
             logs: { ...props.logs, data: [] },
@@ -320,16 +329,6 @@ const parsedPayload = computed(() =>
                         <Trash2 class="size-3.5" />
                     </button>
                 </div>
-
-                <!-- New requests banner -->
-                <Link
-                    v-if="hasNewRequests"
-                    :href="app.webhooks.show(webhook).url"
-                    class="flex shrink-0 items-center justify-center gap-1.5 border-b border-green-500/30 bg-green-500/10 py-1.5 text-[11px] font-medium text-green-700 transition-colors hover:bg-green-500/20 dark:text-green-400"
-                >
-                    <span class="size-1.5 rounded-full bg-green-500" />
-                    Nova requisição — clique para atualizar
-                </Link>
 
                 <div class="flex-1 overflow-y-auto">
                     <InfiniteScroll data="logs">
@@ -604,4 +603,28 @@ const parsedPayload = computed(() =>
             </div>
         </div>
     </div>
+
+    <Dialog
+        :open="confirmDeleteAll"
+        @update:open="(v) => (confirmDeleteAll = v)"
+    >
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Apagar todas as requisições</DialogTitle>
+                <DialogDescription>
+                    Tem certeza? Todas as requisições do webhook
+                    <strong>{{ webhook.name }}</strong> serão apagadas
+                    permanentemente e não poderão ser recuperadas.
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+                <Button variant="outline" @click="confirmDeleteAll = false"
+                    >Cancelar</Button
+                >
+                <Button variant="destructive" @click="doDeleteAllLogs"
+                    >Apagar tudo</Button
+                >
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 </template>

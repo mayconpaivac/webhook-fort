@@ -44,6 +44,7 @@ defineOptions({
 const form = useForm({ name: '' });
 const open = ref(false);
 const copiedId = ref<number | null>(null);
+const webhookToDelete = ref<Webhook | null>(null);
 
 function submit() {
     form.post(store().url, {
@@ -55,8 +56,13 @@ function submit() {
 }
 
 function deleteWebhook(webhook: Webhook) {
-    if (!confirm(`Deletar webhook "${webhook.name}"?`)) return;
-    router.delete(destroy(webhook).url);
+    webhookToDelete.value = webhook;
+}
+
+function confirmDelete() {
+    if (!webhookToDelete.value) return;
+    router.delete(destroy(webhookToDelete.value).url);
+    webhookToDelete.value = null;
 }
 
 function copyUrl(webhook: Webhook) {
@@ -202,4 +208,29 @@ function formatDate(date: string) {
             </div>
         </div>
     </div>
+
+    <Dialog
+        :open="!!webhookToDelete"
+        @update:open="(v) => !v && (webhookToDelete = null)"
+    >
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Deletar webhook</DialogTitle>
+                <DialogDescription>
+                    Tem certeza que deseja deletar o webhook
+                    <strong>{{ webhookToDelete?.name }}</strong
+                    >? Todas as requisições registradas serão apagadas
+                    permanentemente.
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+                <Button variant="outline" @click="webhookToDelete = null"
+                    >Cancelar</Button
+                >
+                <Button variant="destructive" @click="confirmDelete"
+                    >Deletar</Button
+                >
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
 </template>

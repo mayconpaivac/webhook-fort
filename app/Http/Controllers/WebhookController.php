@@ -59,7 +59,6 @@ class WebhookController extends Controller
                     ->paginate(50)
             ),
             'logSelected' => $log,
-            'latestLogSqid' => $webhook->logs()->latest()->select('id')->first()?->sqid,
         ]);
     }
 
