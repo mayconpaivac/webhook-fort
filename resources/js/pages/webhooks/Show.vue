@@ -341,10 +341,20 @@ const hasQueryParams = computed(
 const parsedPayload = computed(() =>
     tryParseJson(logSelected?.payload ?? null),
 );
+
+const unreadCount = computed(
+    () => logs.data.filter((l) => !l.read_at).length,
+);
+
+const pageTitle = computed(() =>
+    unreadCount.value > 0
+        ? `(${unreadCount.value}) ${webhook.name}`
+        : webhook.name,
+);
 </script>
 
 <template>
-    <Head :title="webhook.name" />
+    <Head :title="pageTitle" />
 
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
         <!-- Top bar -->
