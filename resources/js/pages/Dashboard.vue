@@ -25,7 +25,7 @@ interface MostActiveWebhook {
 }
 
 interface RecentRequest {
-    id: number;
+    sqid: string;
     method: string;
     ip_address: string | null;
     created_at: string;
@@ -177,8 +177,13 @@ function formatDate(date: string) {
                     <div v-else class="divide-y divide-border">
                         <Link
                             v-for="req in recentRequests"
-                            :key="req.id"
-                            :href="show({ slug: req.webhook.slug }).url"
+                            :key="req.sqid"
+                            :href="
+                                app.webhooks.show({
+                                    slug: req.webhook.slug,
+                                    log: req.sqid,
+                                }).url
+                            "
                             class="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-accent/40"
                         >
                             <span
@@ -255,9 +260,7 @@ function formatDate(date: string) {
                                 {{ stats.mostActiveWebhook.name }}
                             </Link>
                             <p class="mt-0.5 text-xs text-muted-foreground">
-                                {{
-                                    stats.mostActiveWebhook.logs_count
-                                }}
+                                {{ stats.mostActiveWebhook.logs_count }}
                                 requisições
                             </p>
                         </div>

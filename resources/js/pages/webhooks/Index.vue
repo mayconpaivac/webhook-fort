@@ -19,6 +19,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import app from '@/routes/app';
+import { receive } from '@/routes/webhook';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Check, Copy, Globe, Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
@@ -27,6 +28,7 @@ interface Webhook {
     id: number;
     name: string;
     slug: string;
+    token: string;
     logs_count: number;
     created_at: string;
 }
@@ -60,13 +62,17 @@ function deleteWebhook(webhook: Webhook) {
 }
 
 function confirmDelete() {
-    if (!webhookToDelete.value) return;
+    if (!webhookToDelete.value) {
+        return;
+    }
+
     router.delete(destroy(webhookToDelete.value).url);
+
     webhookToDelete.value = null;
 }
 
 function copyUrl(webhook: Webhook) {
-    const url = `${window.location.origin}/webhook/${webhook.slug}`;
+    const url = window.location.origin + receive(webhook).url;
     navigator.clipboard.writeText(url);
     copiedId.value = webhook.id;
     setTimeout(() => (copiedId.value = null), 2000);
