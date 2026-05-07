@@ -303,7 +303,7 @@ const parsedPayload = computed(() =>
                         :class="[
                             selectedLogId === log.sqid ? 'bg-accent' : '',
                             !log.read_at && selectedLogId !== log.sqid
-                                ? 'bg-green-50'
+                                ? 'bg-green-50 dark:bg-green-900/30'
                                 : '',
                         ]"
                         @click="selectLog(log.sqid)"
@@ -311,7 +311,7 @@ const parsedPayload = computed(() =>
                         <div class="flex items-center gap-2">
                             <span
                                 v-if="!log.read_at"
-                                class="size-1.5 shrink-0 rounded-full bg-green-500"
+                                class="size-1.5 shrink-0 rounded-full bg-green-500 dark:bg-green-400"
                             />
                             <span
                                 :class="methodColor(log.method)"
