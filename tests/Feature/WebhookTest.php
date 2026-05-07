@@ -3,6 +3,7 @@
 use App\Models\User;
 use App\Models\Webhook;
 use App\Models\WebhookLog;
+use Illuminate\Http\UploadedFile;
 
 beforeEach(function () {
     $this->user = User::factory()->create();
@@ -115,6 +116,41 @@ it('receives POST with JSON payload and saves log', function () {
     expect($log)->not->toBeNull()
         ->and($log->method)->toBe('POST')
         ->and($log->payload)->toContain('order.created');
+});
+
+it('receives POST with form-urlencoded and saves as JSON payload', function () {
+    $webhook = Webhook::factory()->create();
+
+    $this->post(
+        "/w/{$webhook->slug}/{$webhook->token}",
+        ['name' => 'John', 'email' => 'john@example.com'],
+        ['Content-Type' => 'application/x-www-form-urlencoded'],
+    )->assertOk();
+
+    $log = WebhookLog::where('webhook_id', $webhook->id)->first();
+    $decoded = json_decode($log->payload, true);
+
+    expect($decoded)->toMatchArray(['name' => 'John', 'email' => 'john@example.com']);
+});
+
+it('receives multipart form with file and saves file metadata without content', function () {
+    $webhook = Webhook::factory()->create();
+
+    $file = UploadedFile::fake()->create('document.pdf', 100, 'application/pdf');
+
+    $this->post(
+        "/w/{$webhook->slug}/{$webhook->token}",
+        ['title' => 'My Doc', 'attachment' => $file],
+    )->assertOk();
+
+    $log = WebhookLog::where('webhook_id', $webhook->id)->first();
+    $decoded = json_decode($log->payload, true);
+
+    expect($decoded['title'])->toBe('My Doc')
+        ->and($decoded['attachment']['_file'])->toBeTrue()
+        ->and($decoded['attachment']['name'])->toBe('document.pdf')
+        ->and($decoded['attachment']['mime'])->toBe('application/pdf')
+        ->and($decoded['attachment'])->not->toHaveKey('content');
 });
 
 it('returns 404 for unknown slug', function () {
