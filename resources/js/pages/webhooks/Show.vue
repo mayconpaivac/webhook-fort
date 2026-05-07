@@ -4,15 +4,28 @@ import {
     destroyLogs,
     index,
     markRead,
-    show,
-    showLog,
 } from '@/actions/App/Http/Controllers/WebhookController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import app from '@/routes/app';
 import { receive as webhookReceiveUrl } from '@/routes/webhook';
-import { Head, router, setLayoutProps, useHttp, usePoll } from '@inertiajs/vue3';
-import { Check, Clock, Copy, Globe, Inbox, Loader2, Trash2 } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch } from 'vue';
+import {
+    Head,
+    InfiniteScroll,
+    router,
+    setLayoutProps,
+    usePoll,
+} from '@inertiajs/vue3';
+import {
+    Check,
+    Clock,
+    Copy,
+    Globe,
+    Inbox,
+    Loader2,
+    Trash2,
+} from 'lucide-vue-next';
+import { computed, onMounted, ref } from 'vue';
 import VueJsonPretty from 'vue-json-pretty';
 import 'vue-json-pretty/lib/styles.css';
 
@@ -52,60 +65,32 @@ interface Paginator {
     prev_page_url: string | null;
 }
 
-const { webhook, logs, logId } = defineProps<{
+const { webhook, logs, logSelected } = defineProps<{
     webhook: Webhook;
     logs: Paginator;
-    logId: string | null;
+    logSelected?: WebhookLogDetail;
 }>();
 
 setLayoutProps({
     breadcrumbs: [
         { title: 'Webhooks', href: index() },
-        { title: webhook.name, href: show(webhook).url },
+        { title: webhook.name, href: app.webhooks.show(webhook).url },
     ],
 });
 
-const initialLogId =
-    logId && logs.data.find((l) => l.sqid === logId)
-        ? logId
-        : (logs.data[0]?.sqid ?? null);
-
-const selectedLogId = ref<string | null>(initialLogId);
-
-const selectedLog = computed(
-    () => logs.data.find((l) => l.sqid === selectedLogId.value) ?? null,
-);
-
-const selectedLogDetail = ref<WebhookLogDetail | null>(null);
-const detailCache = new Map<string, WebhookLogDetail>();
-const http = useHttp({});
-
-function fetchLogDetail(sqid: string) {
-    if (detailCache.has(sqid)) {
-        if (selectedLogId.value === sqid) {
-            selectedLogDetail.value = detailCache.get(sqid)!;
-        }
+function markAsRead(sqid: string | null) {
+    if (!sqid) {
         return;
     }
 
-    http.get(showLog({ slug: webhook.slug, log: sqid }).url, {
-        onSuccess: (detail) => {
-            const typedDetail = detail as WebhookLogDetail;
-            detailCache.set(sqid, typedDetail);
-            if (selectedLogId.value === sqid) {
-                selectedLogDetail.value = typedDetail;
-            }
-        },
-    });
-}
-
-function markAsRead(sqid: string | null) {
-    if (!sqid) return;
     const log = logs.data.find((l) => l.sqid === sqid);
-    if (!log || log.read_at) return;
+
+    if (!log || log.read_at) {
+        return;
+    }
 
     router
-        .optimistic((props) => ({
+        .optimistic<{ logs: Paginator }>((props) => ({
             logs: {
                 ...props.logs,
                 data: props.logs.data.map((l: WebhookLogSummary) =>
@@ -120,38 +105,31 @@ function markAsRead(sqid: string | null) {
             {},
             {
                 preserveScroll: true,
-                only: ['logs'],
+                only: ['logSelected'],
             },
         );
 }
 
-function selectLog(id: string | null) {
-    selectedLogId.value = id;
-    selectedLogDetail.value = null;
-    const base = `/webhooks/${webhook.slug}`;
-    window.history.replaceState(null, '', id !== null ? `${base}/${id}` : base);
-    markAsRead(id);
-    if (id) fetchLogDetail(id);
+function openLog(id: string) {
+    router.visit(
+        app.webhooks.show({
+            slug: webhook.slug,
+            log: id,
+        }).url,
+        {
+            preserveScroll: true,
+            only: ['logSelected'],
+        },
+    );
 }
 
 onMounted(() => {
-    markAsRead(selectedLogId.value);
-    if (selectedLogId.value) fetchLogDetail(selectedLogId.value);
+    if (logSelected?.sqid) {
+        markAsRead(logSelected.sqid);
+    }
 });
 
-watch(
-    () => logs.data,
-    (data) => {
-        if (
-            !selectedLogId.value ||
-            !data.find((l) => l.sqid === selectedLogId.value)
-        ) {
-            selectLog(data[0]?.sqid ?? null);
-        }
-    },
-);
-
-usePoll(3000, { only: ['logs'] });
+usePoll(3000);
 
 const copiedUrl = ref(false);
 const copiedPayload = ref(false);
@@ -196,16 +174,15 @@ function formatDateShort(date: string) {
 }
 
 function tryParseJson(value: string | null): unknown | null {
-    if (!value) return null;
+    if (!value) {
+        return null;
+    }
+
     try {
         return JSON.parse(value);
     } catch {
         return null;
     }
-}
-
-function isJson(value: string | null): boolean {
-    return tryParseJson(value) !== null;
 }
 
 function copyUrl() {
@@ -215,17 +192,17 @@ function copyUrl() {
 }
 
 function deleteLog(log: WebhookLogSummary) {
-    const isSelected = selectedLogId.value === log.sqid;
+    const isSelected = logSelected?.sqid === log.sqid;
     const currentIndex = logs.data.findIndex((l) => l.sqid === log.sqid);
     const next =
         logs.data[currentIndex + 1] ?? logs.data[currentIndex - 1] ?? null;
 
     if (isSelected) {
-        selectLog(next?.sqid ?? null);
+        openLog(next?.sqid ?? null);
     }
 
     router
-        .optimistic((props) => ({
+        .optimistic<{ logs: Paginator }>((props) => ({
             logs: {
                 ...props.logs,
                 data: props.logs.data.filter(
@@ -235,15 +212,13 @@ function deleteLog(log: WebhookLogSummary) {
         }))
         .delete(destroyLog({ slug: webhook.slug, log: log.sqid }).url, {
             preserveScroll: true,
-            only: ['logs'],
+            only: ['logSelected'],
         });
 }
 
 function deleteAllLogs() {
-    selectLog(null);
-
     router
-        .optimistic((props) => ({
+        .optimistic<{ logs: Paginator }>((props) => ({
             logs: { ...props.logs, data: [] },
         }))
         .delete(destroyLogs({ slug: webhook.slug }).url, {
@@ -253,8 +228,12 @@ function deleteAllLogs() {
 }
 
 function copyPayload() {
-    if (!selectedLogDetail.value?.payload) return;
-    navigator.clipboard.writeText(selectedLogDetail.value.payload);
+    if (!logSelected?.payload) {
+        return;
+    }
+
+    navigator.clipboard.writeText(logSelected.payload);
+
     copiedPayload.value = true;
     setTimeout(() => (copiedPayload.value = false), 2000);
 }
@@ -263,12 +242,12 @@ const webhookUrl = `${window.location.origin}${webhookReceiveUrl({ slug: webhook
 
 const hasQueryParams = computed(
     () =>
-        selectedLogDetail.value?.query_params &&
-        Object.keys(selectedLogDetail.value.query_params).length > 0,
+        logSelected?.query_params &&
+        Object.keys(logSelected.query_params).length > 0,
 );
 
 const parsedPayload = computed(() =>
-    tryParseJson(selectedLogDetail.value?.payload ?? null),
+    tryParseJson(logSelected?.payload ?? null),
 );
 </script>
 
@@ -333,53 +312,61 @@ const parsedPayload = computed(() =>
                 </div>
 
                 <div class="flex-1 overflow-y-auto">
-                    <div
-                        v-for="log in logs.data"
-                        :key="log.sqid"
-                        class="group/log cursor-pointer border-b border-border px-3 py-3 transition-colors hover:bg-accent/40"
-                        :class="[
-                            selectedLogId === log.sqid ? 'bg-accent' : '',
-                            !log.read_at && selectedLogId !== log.sqid
-                                ? 'bg-green-50 dark:bg-green-900/30'
-                                : '',
-                        ]"
-                        @click="selectLog(log.sqid)"
-                    >
-                        <div class="flex items-center gap-2">
-                            <span
-                                v-if="!log.read_at"
-                                class="size-1.5 shrink-0 rounded-full bg-green-500 dark:bg-green-400"
-                            />
-                            <span
-                                :class="methodColor(log.method)"
-                                class="inline-flex shrink-0 items-center rounded border px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase"
-                            >
-                                {{ log.method }}
-                            </span>
-                            <span
-                                class="truncate font-mono text-xs text-muted-foreground"
-                            >
-                                /{{ webhook.slug }}
-                            </span>
-                        </div>
+                    <InfiniteScroll data="logs">
                         <div
-                            class="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground"
+                            v-for="log in logs.data"
+                            :key="log.sqid"
+                            class="group/log cursor-pointer border-b border-border px-3 py-3 transition-colors hover:bg-accent/40"
+                            :class="[
+                                logSelected?.sqid === log.sqid
+                                    ? 'bg-accent'
+                                    : '',
+                                !log.read_at && logSelected?.sqid !== log.sqid
+                                    ? 'bg-green-50 dark:bg-green-900/30'
+                                    : '',
+                            ]"
+                            @click="openLog(log.sqid)"
                         >
-                            <Clock class="size-3 shrink-0" />
-                            <span>{{ formatDateShort(log.created_at) }}</span>
-                            <span v-if="log.ip_address" class="truncate"
-                                >· {{ log.ip_address }}</span
+                            <div class="flex items-center gap-2">
+                                <span
+                                    v-if="!log.read_at"
+                                    class="size-1.5 shrink-0 rounded-full bg-green-500 dark:bg-green-400"
+                                />
+                                <span
+                                    :class="methodColor(log.method)"
+                                    class="inline-flex shrink-0 items-center rounded border px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase"
+                                >
+                                    {{ log.method }}
+                                </span>
+                                <span
+                                    class="truncate font-mono text-xs text-muted-foreground"
+                                >
+                                    /{{ webhook.slug }}
+                                </span>
+                            </div>
+                            <div
+                                class="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground"
                             >
-                            <button
-                                type="button"
-                                class="ml-auto shrink-0 rounded p-0.5 text-muted-foreground/50 opacity-0 transition-opacity group-hover/log:opacity-100 hover:text-destructive"
-                                title="Deletar request"
-                                @click.stop="deleteLog(log)"
-                            >
-                                <Trash2 class="size-3" />
-                            </button>
+                                <Clock class="size-3 shrink-0" />
+                                <span>{{
+                                    formatDateShort(log.created_at)
+                                }}</span>
+                                <span v-if="log.ip_address" class="truncate"
+                                    >· {{ log.ip_address }}</span
+                                >
+                                <button
+                                    type="button"
+                                    class="ml-auto shrink-0 rounded p-0.5 text-muted-foreground/50 opacity-0 transition-opacity group-hover/log:opacity-100 hover:text-destructive"
+                                    title="Deletar request"
+                                    @click.stop="deleteLog(log)"
+                                >
+                                    <Trash2 class="size-3" />
+                                </button>
+                            </div>
                         </div>
-                    </div>
+
+                        <template #loading> Carregando... </template>
+                    </InfiniteScroll>
                 </div>
 
                 <!-- Pagination -->
@@ -419,7 +406,7 @@ const parsedPayload = computed(() =>
 
             <!-- Right: request detail -->
             <div
-                v-if="selectedLog"
+                v-if="logSelected"
                 class="flex min-w-0 flex-1 flex-col overflow-hidden"
             >
                 <!-- Detail header — fixed -->
@@ -427,23 +414,23 @@ const parsedPayload = computed(() =>
                     class="flex shrink-0 items-center gap-3 border-b border-border px-5 py-3"
                 >
                     <span
-                        :class="methodColor(selectedLog.method)"
+                        :class="methodColor(logSelected.method)"
                         class="inline-flex items-center rounded border px-2 py-0.5 font-mono text-xs font-bold uppercase"
                     >
-                        {{ selectedLog.method }}
+                        {{ logSelected.method }}
                     </span>
                     <span class="font-mono text-sm text-muted-foreground"
                         >/webhook/{{ webhook.slug }}</span
                     >
                     <span class="ml-auto text-xs text-muted-foreground">{{
-                        formatDate(selectedLog.created_at)
+                        formatDate(logSelected.created_at)
                     }}</span>
                     <Button
                         variant="ghost"
                         size="icon"
                         class="size-7 shrink-0 text-muted-foreground hover:text-destructive"
                         title="Deletar request"
-                        @click="deleteLog(selectedLog)"
+                        @click="deleteLog(logSelected)"
                     >
                         <Trash2 class="size-4" />
                     </Button>
@@ -453,135 +440,145 @@ const parsedPayload = computed(() =>
                 <div class="flex-1 divide-y divide-border overflow-y-auto">
                     <!-- Loading state -->
                     <div
-                        v-if="!selectedLogDetail"
+                        v-if="!logSelected"
                         class="flex flex-1 items-center justify-center py-16"
                     >
-                        <Loader2 class="size-5 animate-spin text-muted-foreground" />
+                        <Loader2
+                            class="size-5 animate-spin text-muted-foreground"
+                        />
                     </div>
 
                     <template v-else>
-                    <!-- Meta -->
-                    <div class="px-5 py-4">
-                        <p
-                            class="mb-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-                        >
-                            Info
-                        </p>
-                        <div
-                            class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-mono text-xs"
-                        >
-                            <span class="text-muted-foreground">IP</span>
-                            <span>{{ selectedLogDetail.ip_address ?? '—' }}</span>
-                            <span class="text-muted-foreground"
-                                >User-Agent</span
-                            >
-                            <span class="break-all">{{
-                                selectedLogDetail.user_agent ?? '—'
-                            }}</span>
-                        </div>
-                    </div>
-
-                    <!-- Query params -->
-                    <div v-if="hasQueryParams" class="px-5 py-4">
-                        <p
-                            class="mb-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-                        >
-                            Query Params
-                        </p>
-                        <div
-                            class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-mono text-xs"
-                        >
-                            <template
-                                v-for="(value, key) in selectedLogDetail.query_params"
-                                :key="key"
-                            >
-                                <span class="text-primary">{{ key }}</span>
-                                <span class="text-foreground/80">{{
-                                    value
-                                }}</span>
-                            </template>
-                        </div>
-                    </div>
-
-                    <!-- Headers -->
-                    <div class="px-5 py-4">
-                        <p
-                            class="mb-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-                        >
-                            Headers
-                        </p>
-                        <div
-                            class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-mono text-xs"
-                        >
-                            <template
-                                v-for="(value, key) in selectedLogDetail.headers"
-                                :key="key"
-                            >
-                                <span class="shrink-0 text-primary">{{
-                                    key
-                                }}</span>
-                                <span class="break-all text-foreground/80">{{
-                                    value
-                                }}</span>
-                            </template>
-                        </div>
-                    </div>
-
-                    <!-- Payload -->
-                    <div class="px-5 py-4">
-                        <div class="mb-3 flex items-center gap-2">
+                        <!-- Meta -->
+                        <div class="px-5 py-4">
                             <p
-                                class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                                class="mb-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
                             >
-                                Payload
+                                Info
                             </p>
-                            <Badge
-                                v-if="parsedPayload !== null"
-                                variant="outline"
-                                class="text-[10px]"
-                                >JSON</Badge
+                            <div
+                                class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-mono text-xs"
                             >
-                            <Button
-                                v-if="selectedLogDetail.payload"
-                                variant="ghost"
-                                size="icon"
-                                class="ml-auto size-6"
-                                :title="
-                                    copiedPayload
-                                        ? 'Copiado!'
-                                        : 'Copiar payload'
-                                "
-                                @click="copyPayload"
-                            >
-                                <Check
-                                    v-if="copiedPayload"
-                                    class="size-3 text-green-500"
-                                />
-                                <Copy v-else class="size-3" />
-                            </Button>
+                                <span class="text-muted-foreground">IP</span>
+                                <span>{{ logSelected.ip_address ?? '—' }}</span>
+                                <span class="text-muted-foreground"
+                                    >User-Agent</span
+                                >
+                                <span class="break-all">{{
+                                    logSelected.user_agent ?? '—'
+                                }}</span>
+                            </div>
                         </div>
 
-                        <div
-                            v-if="parsedPayload !== null"
-                            class="rounded-lg bg-muted/60 p-3"
-                        >
-                            <VueJsonPretty
-                                :data="parsedPayload"
-                                :deep="3"
-                                :show-line="false"
-                                :show-double-quotes="true"
-                                class="text-xs"
-                            />
+                        <!-- Query params -->
+                        <div v-if="hasQueryParams" class="px-5 py-4">
+                            <p
+                                class="mb-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                            >
+                                Query Params
+                            </p>
+                            <div
+                                class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-mono text-xs"
+                            >
+                                <template
+                                    v-for="(
+                                        value, key
+                                    ) in logSelected.query_params"
+                                    :key="key"
+                                >
+                                    <span class="text-primary">{{ key }}</span>
+                                    <span class="text-foreground/80">{{
+                                        value
+                                    }}</span>
+                                </template>
+                            </div>
                         </div>
-                        <pre
-                            v-else-if="selectedLogDetail.payload"
-                            class="overflow-auto rounded-lg bg-muted/60 p-3 font-mono text-xs leading-relaxed"
-                            >{{ selectedLogDetail.payload }}</pre
-                        >
-                        <p v-else class="text-xs text-muted-foreground italic">
-                            Sem payload
-                        </p>
-                    </div>
+
+                        <!-- Headers -->
+                        <div class="px-5 py-4">
+                            <p
+                                class="mb-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                            >
+                                Headers
+                            </p>
+                            <div
+                                class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-mono text-xs"
+                            >
+                                <template
+                                    v-for="(value, key) in logSelected.headers"
+                                    :key="key"
+                                >
+                                    <span class="shrink-0 text-primary">{{
+                                        key
+                                    }}</span>
+                                    <span
+                                        class="break-all text-foreground/80"
+                                        >{{ value }}</span
+                                    >
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Payload -->
+                        <div class="px-5 py-4">
+                            <div class="mb-3 flex items-center gap-2">
+                                <p
+                                    class="text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                                >
+                                    Payload
+                                </p>
+                                <Badge
+                                    v-if="parsedPayload !== null"
+                                    variant="outline"
+                                    class="text-[10px]"
+                                    >JSON</Badge
+                                >
+                                <Button
+                                    v-if="logSelected.payload"
+                                    variant="ghost"
+                                    size="icon"
+                                    class="ml-auto size-6"
+                                    :title="
+                                        copiedPayload
+                                            ? 'Copiado!'
+                                            : 'Copiar payload'
+                                    "
+                                    @click="copyPayload"
+                                >
+                                    <Check
+                                        v-if="copiedPayload"
+                                        class="size-3 text-green-500"
+                                    />
+                                    <Copy v-else class="size-3" />
+                                </Button>
+                            </div>
+
+                            <div
+                                v-if="parsedPayload !== null"
+                                class="rounded-lg bg-muted/60 p-3"
+                            >
+                                <VueJsonPretty
+                                    :data="
+                                        parsedPayload as Record<string, unknown>
+                                    "
+                                    :deep="3"
+                                    :show-line="false"
+                                    :show-double-quotes="true"
+                                    class="text-xs"
+                                />
+                            </div>
+                            <pre
+                                v-else-if="logSelected.payload"
+                                class="overflow-auto rounded-lg bg-muted/60 p-3 font-mono text-xs leading-relaxed"
+                                >{{ logSelected.payload }}</pre
+                            >
+                            <p
+                                v-else
+                                class="text-xs text-muted-foreground italic"
+                            >
+                                Sem payload
+                            </p>
+                        </div>
                     </template>
                 </div>
             </div>

@@ -10,12 +10,12 @@ Route::inertia('/', 'Welcome', [
     'canRegister' => Features::enabled(Features::registration()),
 ])->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified'])->as('app.')->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::get('webhooks', [WebhookController::class, 'index'])->name('webhooks.index');
     Route::post('webhooks', [WebhookController::class, 'store'])->name('webhooks.store');
-    Route::get('webhooks/{slug}/{sqid?}', [WebhookController::class, 'show'])->name('webhooks.show');
+    Route::get('webhooks/{slug}/{log?}', [WebhookController::class, 'show'])->name('webhooks.show');
     Route::delete('webhooks/{slug}', [WebhookController::class, 'destroy'])->name('webhooks.destroy');
     Route::get('webhooks/{slug}/logs/{log}', [WebhookController::class, 'showLog'])->name('webhooks.logs.show');
     Route::delete('webhooks/{slug}/logs', [WebhookController::class, 'destroyLogs'])->name('webhooks.logs.destroyAll');

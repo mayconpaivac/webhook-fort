@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { index as webhooksIndex } from '@/actions/App/Http/Controllers/WebhookController';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -13,7 +12,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import app from '@/routes/app';
 import type { NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
 import { LayoutGrid, Webhook } from 'lucide-vue-next';
@@ -21,12 +20,12 @@ import { LayoutGrid, Webhook } from 'lucide-vue-next';
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
-        href: dashboard(),
+        href: app.dashboard(),
         icon: LayoutGrid,
     },
     {
         title: 'Webhooks',
-        href: webhooksIndex().url,
+        href: app.webhooks.index().url,
         icon: Webhook,
     },
 ];
@@ -40,7 +39,7 @@ const footerNavItems: NavItem[] = [];
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link :href="app.dashboard()">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>

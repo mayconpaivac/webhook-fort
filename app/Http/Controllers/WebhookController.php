@@ -31,9 +31,15 @@ class WebhookController extends Controller
             'name' => ['required', 'string', 'max:255'],
         ]);
 
+        $slug = Str::slug($validated['name']);
+
+        if ($request->user()->webhooks()->where('slug', $slug)->exists()) {
+            return back()->withErrors(['name' => 'Você já possui um webhook com este nome. Por favor, escolha um nome diferente.']);
+        }
+
         $request->user()->webhooks()->create([
             'name' => $validated['name'],
-            'slug' => Str::slug($validated['name']),
+            'slug' => $slug,
             'token' => Str::uuid()->toString(),
         ]);
 
@@ -44,24 +50,20 @@ class WebhookController extends Controller
     {
         $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();
 
-        $logs = $webhook->logs()
-            ->latest()
-            ->select(['id', 'method', 'ip_address', 'created_at', 'read_at'])
-            ->paginate(50);
+        if ($log) {
+            $log = $webhook->logs()->findBySqid($log);
+        }
 
         return Inertia::render('webhooks/Show', [
             'webhook' => $webhook,
-            'logs' => $logs,
-            'logId' => $log,
+            'logs' => Inertia::scroll(
+                fn () => $webhook->logs()
+                    ->latest()
+                    ->select(['id', 'method', 'ip_address', 'created_at', 'read_at'])
+                    ->paginate(50)
+            ),
+            'logSelected' => $log,
         ]);
-    }
-
-    public function showLog(Request $request, string $slug, WebhookLog $log): JsonResponse
-    {
-        $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();
-        abort_unless($log->webhook_id === $webhook->id, 404);
-
-        return response()->json($log);
     }
 
     public function destroy(Request $request, string $slug): RedirectResponse

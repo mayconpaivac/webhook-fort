@@ -32,8 +32,7 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { getInitials } from '@/composables/useInitials';
 import { toUrl } from '@/lib/utils';
-import { dashboard } from '@/routes';
-import webhooks from '@/routes/webhooks';
+import app from '@/routes/app';
 import type { BreadcrumbItem, NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
 import { LayoutGrid, Menu, WebhookIcon } from 'lucide-vue-next';
@@ -57,12 +56,12 @@ const activeItemStyles =
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
-        href: dashboard(),
+        href: app.dashboard(),
         icon: LayoutGrid,
     },
     {
         title: 'Webhooks',
-        href: webhooks.index().url,
+        href: app.webhooks.index().url,
         icon: WebhookIcon,
     },
 ];
@@ -141,7 +140,7 @@ const rightNavItems: NavItem[] = [];
                     </Sheet>
                 </div>
 
-                <Link :href="dashboard()" class="flex items-center gap-x-2">
+                <Link :href="app.dashboard()" class="flex items-center gap-x-2">
                     <AppLogo />
                 </Link>
 

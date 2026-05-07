@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import AppLogoIcon from '@/components/AppLogoIcon.vue';
-import { dashboard, login, register } from '@/routes';
 import { Head, Link } from '@inertiajs/vue3';
 import { Eye, Globe, Zap } from 'lucide-vue-next';
+import AppLogoIcon from '@/components/AppLogoIcon.vue';
+import { login, register } from '@/routes';
+import app from '@/routes/app';
 
 withDefaults(
     defineProps<{
@@ -29,7 +30,7 @@ withDefaults(
             <nav class="flex items-center gap-3">
                 <Link
                     v-if="$page.props.auth.user"
-                    :href="dashboard()"
+                    :href="app.dashboard()"
                     class="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                 >
                     Dashboard

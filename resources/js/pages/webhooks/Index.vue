@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { Globe, Plus, Trash2, Copy, Check } from 'lucide-vue-next';
-import { ref } from 'vue';
-import { index, store, destroy, show } from '@/actions/App/Http/Controllers/WebhookController';
+import {
+    destroy,
+    index,
+    store,
+} from '@/actions/App/Http/Controllers/WebhookController';
+import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,7 +18,10 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import Heading from '@/components/Heading.vue';
+import app from '@/routes/app';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { Check, Copy, Globe, Plus, Trash2 } from 'lucide-vue-next';
+import { ref } from 'vue';
 
 interface Webhook {
     id: number;
@@ -32,9 +37,7 @@ const { webhooks } = defineProps<{
 
 defineOptions({
     layout: {
-        breadcrumbs: [
-            { title: 'Webhooks', href: index() },
-        ],
+        breadcrumbs: [{ title: 'Webhooks', href: index() }],
     },
 });
 
@@ -79,7 +82,10 @@ function formatDate(date: string) {
 
     <div class="flex h-full flex-1 flex-col gap-6 p-6">
         <div class="flex items-center justify-between">
-            <Heading title="Webhooks" description="Receba e inspecione requisições HTTP de qualquer origem." />
+            <Heading
+                title="Webhooks"
+                description="Receba e inspecione requisições HTTP de qualquer origem."
+            />
 
             <Dialog v-model:open="open">
                 <DialogTrigger as-child>
@@ -92,7 +98,8 @@ function formatDate(date: string) {
                     <DialogHeader>
                         <DialogTitle>Criar Webhook</DialogTitle>
                         <DialogDescription>
-                            Dê um nome ao seu webhook. A URL será gerada automaticamente.
+                            Dê um nome ao seu webhook. A URL será gerada
+                            automaticamente.
                         </DialogDescription>
                     </DialogHeader>
                     <form @submit.prevent="submit" class="space-y-4">
@@ -104,7 +111,10 @@ function formatDate(date: string) {
                                 placeholder="meu-webhook"
                                 autofocus
                             />
-                            <p v-if="form.errors.name" class="text-sm text-destructive">
+                            <p
+                                v-if="form.errors.name"
+                                class="text-sm text-destructive"
+                            >
                                 {{ form.errors.name }}
                             </p>
                         </div>
@@ -118,11 +128,16 @@ function formatDate(date: string) {
             </Dialog>
         </div>
 
-        <div v-if="webhooks.length === 0" class="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border p-16 text-center">
+        <div
+            v-if="webhooks.length === 0"
+            class="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border p-16 text-center"
+        >
             <Globe class="size-10 text-muted-foreground" />
             <div>
                 <p class="font-medium">Nenhum webhook ainda</p>
-                <p class="text-sm text-muted-foreground">Crie um webhook para começar a receber requisições.</p>
+                <p class="text-sm text-muted-foreground">
+                    Crie um webhook para começar a receber requisições.
+                </p>
             </div>
         </div>
 
@@ -132,22 +147,33 @@ function formatDate(date: string) {
                 :key="webhook.id"
                 class="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-accent/30"
             >
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <div
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10"
+                >
                     <Globe class="size-5 text-primary" />
                 </div>
 
-                <div class="min-w-0 flex-1 cursor-pointer" @click="router.visit(show(webhook).url)">
+                <div
+                    class="min-w-0 flex-1 cursor-pointer"
+                    @click="router.visit(app.webhooks.show(webhook).url)"
+                >
                     <div class="flex items-center gap-2">
                         <span class="font-semibold">{{ webhook.name }}</span>
-                        <Badge variant="secondary">{{ webhook.logs_count }} requests</Badge>
+                        <Badge variant="secondary"
+                            >{{ webhook.logs_count }} requests</Badge
+                        >
                     </div>
-                    <p class="mt-0.5 truncate text-sm text-muted-foreground font-mono">
-                        /webhook/{{ webhook.slug }}
+                    <p
+                        class="mt-0.5 truncate font-mono text-sm text-muted-foreground"
+                    >
+                        /w/{{ webhook.slug }}
                     </p>
                 </div>
 
                 <div class="flex shrink-0 items-center gap-1">
-                    <span class="mr-2 text-xs text-muted-foreground">{{ formatDate(webhook.created_at) }}</span>
+                    <span class="mr-2 text-xs text-muted-foreground">{{
+                        formatDate(webhook.created_at)
+                    }}</span>
 
                     <Button
                         variant="ghost"
@@ -156,7 +182,10 @@ function formatDate(date: string) {
                         title="Copiar URL"
                         @click.stop="copyUrl(webhook)"
                     >
-                        <Check v-if="copiedId === webhook.id" class="size-4 text-green-500" />
+                        <Check
+                            v-if="copiedId === webhook.id"
+                            class="size-4 text-green-500"
+                        />
                         <Copy v-else class="size-4" />
                     </Button>
 
