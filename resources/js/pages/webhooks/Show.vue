@@ -4,6 +4,7 @@ import {
     destroyLogs,
     index,
     markRead,
+    resetToken,
 } from '@/actions/App/Http/Controllers/WebhookController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ import {
     Globe,
     Inbox,
     Loader2,
+    RefreshCw,
     Trash2,
 } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
@@ -282,6 +284,18 @@ function deleteLog(log: WebhookLogSummary) {
 }
 
 const confirmDeleteAll = ref(false);
+const confirmResetToken = ref(false);
+
+function doResetToken() {
+    confirmResetToken.value = false;
+    router.patch(
+        resetToken({ slug: webhook.slug }).url,
+        {},
+        {
+            preserveState: false,
+        },
+    );
+}
 
 function deleteAllLogs() {
     confirmDeleteAll.value = true;
@@ -355,6 +369,15 @@ const parsedPayload = computed(() =>
             >
                 <Check v-if="copiedUrl" class="size-4 text-green-500" />
                 <Copy v-else class="size-4" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="icon"
+                class="size-7 shrink-0 text-muted-foreground"
+                title="Resetar token"
+                @click="confirmResetToken = true"
+            >
+                <RefreshCw class="size-4" />
             </Button>
         </div>
 
@@ -712,6 +735,29 @@ const parsedPayload = computed(() =>
                 >
                 <Button variant="destructive" @click="doDeleteAllLogs"
                     >Apagar tudo</Button
+                >
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+
+    <Dialog :open="confirmResetToken" @update:open="confirmResetToken = $event">
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Resetar token do webhook</DialogTitle>
+                <DialogDescription>
+                    O token atual será
+                    <strong>invalidado imediatamente</strong>. Qualquer
+                    integração que use a URL atual deixará de funcionar. Você
+                    precisará atualizar a URL em todos os serviços que a
+                    utilizam.
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+                <Button variant="outline" @click="confirmResetToken = false"
+                    >Cancelar</Button
+                >
+                <Button variant="default" @click="doResetToken"
+                    >Sim, resetar token</Button
                 >
             </DialogFooter>
         </DialogContent>

@@ -70,6 +70,14 @@ class WebhookController extends Controller
         return response()->json($log);
     }
 
+    public function resetToken(Request $request, string $slug): RedirectResponse
+    {
+        $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();
+        $webhook->update(['token' => Str::uuid()->toString()]);
+
+        return back();
+    }
+
     public function destroy(Request $request, string $slug): RedirectResponse
     {
         $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();

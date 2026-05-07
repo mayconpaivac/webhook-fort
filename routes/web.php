@@ -21,6 +21,7 @@ Route::middleware(['auth', 'verified'])->as('app.')->group(function () {
     Route::delete('webhooks/{slug}/logs', [WebhookController::class, 'destroyLogs'])->name('webhooks.logs.destroyAll');
     Route::delete('webhooks/{slug}/logs/{log}', [WebhookController::class, 'destroyLog'])->name('webhooks.logs.destroy');
     Route::patch('webhooks/{slug}/logs/{log}/read', [WebhookController::class, 'markRead'])->name('webhooks.logs.markRead');
+    Route::patch('webhooks/{slug}/token', [WebhookController::class, 'resetToken'])->name('webhooks.resetToken');
 });
 
 Route::any('w/{slug}/{token}', [WebhookReceiverController::class, 'receive'])->name('webhook.receive');
