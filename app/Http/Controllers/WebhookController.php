@@ -33,17 +33,13 @@ class WebhookController extends Controller
 
         $slug = Str::slug($validated['name']);
 
-        if ($request->user()->webhooks()->where('slug', $slug)->exists()) {
-            return back()->withErrors(['name' => 'Você já possui um webhook com este nome. Por favor, escolha um nome diferente.']);
-        }
-
         $request->user()->webhooks()->create([
             'name' => $validated['name'],
             'slug' => $slug,
             'token' => Str::uuid()->toString(),
         ]);
 
-        return redirect()->route('webhooks.index');
+        return redirect()->route('app.webhooks.index');
     }
 
     public function show(Request $request, string $slug, ?string $log = null): Response
@@ -63,7 +59,16 @@ class WebhookController extends Controller
                     ->paginate(50)
             ),
             'logSelected' => $log,
+            'latestLogSqid' => $webhook->logs()->latest()->select('id')->first()?->sqid,
         ]);
+    }
+
+    public function showLog(Request $request, string $slug, WebhookLog $log): JsonResponse
+    {
+        $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();
+        abort_unless($log->webhook_id === $webhook->id, 404);
+
+        return response()->json($log);
     }
 
     public function destroy(Request $request, string $slug): RedirectResponse
@@ -71,7 +76,7 @@ class WebhookController extends Controller
         $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();
         $webhook->delete();
 
-        return redirect()->route('webhooks.index');
+        return redirect()->route('app.webhooks.index');
     }
 
     public function markRead(Request $request, string $slug, WebhookLog $log): RedirectResponse

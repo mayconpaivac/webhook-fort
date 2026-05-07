@@ -12,6 +12,7 @@ import { receive as webhookReceiveUrl } from '@/routes/webhook';
 import {
     Head,
     InfiniteScroll,
+    Link,
     router,
     setLayoutProps,
     usePoll,
@@ -65,10 +66,11 @@ interface Paginator {
     prev_page_url: string | null;
 }
 
-const { webhook, logs, logSelected } = defineProps<{
+const { webhook, logs, logSelected, latestLogSqid } = defineProps<{
     webhook: Webhook;
     logs: Paginator;
     logSelected?: WebhookLogDetail;
+    latestLogSqid: string | null;
 }>();
 
 setLayoutProps({
@@ -117,8 +119,12 @@ function openLog(id: string) {
             log: id,
         }).url,
         {
+            preserveState: true,
             preserveScroll: true,
             only: ['logSelected'],
+            onSuccess: () => {
+                markAsRead(id);
+            },
         },
     );
 }
@@ -129,7 +135,11 @@ onMounted(() => {
     }
 });
 
-usePoll(3000);
+usePoll(3000, { only: ['latestLogSqid'] });
+
+const hasNewRequests = computed(
+    () => latestLogSqid !== null && latestLogSqid !== logs.data[0]?.sqid,
+);
 
 const copiedUrl = ref(false);
 const copiedPayload = ref(false);
@@ -310,6 +320,16 @@ const parsedPayload = computed(() =>
                         <Trash2 class="size-3.5" />
                     </button>
                 </div>
+
+                <!-- New requests banner -->
+                <Link
+                    v-if="hasNewRequests"
+                    :href="app.webhooks.show(webhook).url"
+                    class="flex shrink-0 items-center justify-center gap-1.5 border-b border-green-500/30 bg-green-500/10 py-1.5 text-[11px] font-medium text-green-700 transition-colors hover:bg-green-500/20 dark:text-green-400"
+                >
+                    <span class="size-1.5 rounded-full bg-green-500" />
+                    Nova requisição — clique para atualizar
+                </Link>
 
                 <div class="flex-1 overflow-y-auto">
                     <InfiniteScroll data="logs">
