@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-vue-next';
-import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import Breadcrumbs from '@/components/Breadcrumbs.vue';
@@ -36,7 +33,11 @@ import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { getInitials } from '@/composables/useInitials';
 import { toUrl } from '@/lib/utils';
 import { dashboard } from '@/routes';
+import webhooks from '@/routes/webhooks';
 import type { BreadcrumbItem, NavItem } from '@/types';
+import { Link, usePage } from '@inertiajs/vue3';
+import { LayoutGrid, Menu, WebhookIcon } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 type Props = {
     breadcrumbs?: BreadcrumbItem[];
@@ -59,20 +60,14 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
+    {
+        title: 'Webhooks',
+        href: webhooks.index().url,
+        icon: WebhookIcon,
+    },
 ];
 
-const rightNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
-];
+const rightNavItems: NavItem[] = [];
 </script>
 
 <template>
@@ -190,16 +185,6 @@ const rightNavItems: NavItem[] = [
 
                 <div class="ml-auto flex items-center space-x-2">
                     <div class="relative flex items-center space-x-1">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            class="group h-9 w-9 cursor-pointer"
-                        >
-                            <Search
-                                class="size-5 opacity-80 group-hover:opacity-100"
-                            />
-                        </Button>
-
                         <div class="hidden space-x-1 lg:flex">
                             <template
                                 v-for="item in rightNavItems"
