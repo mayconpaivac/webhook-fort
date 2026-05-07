@@ -35,7 +35,10 @@ import {
     Loader2,
     Trash2,
 } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
+
+const listContainerEl = ref<HTMLDivElement | null>(null);
+const selectedItemEl = ref<HTMLDivElement | null>(null);
 import VueJsonPretty from 'vue-json-pretty';
 import 'vue-json-pretty/lib/styles.css';
 
@@ -140,6 +143,14 @@ function openLog(id: string) {
 onMounted(() => {
     if (logSelected?.sqid) {
         markAsRead(logSelected.sqid);
+        nextTick(() => {
+            if (selectedItemEl.value && listContainerEl.value) {
+                const container = listContainerEl.value;
+                const item = selectedItemEl.value;
+                container.scrollTop =
+                    item.offsetTop - container.clientHeight / 2 + item.clientHeight / 2;
+            }
+        });
     }
 });
 
@@ -352,11 +363,12 @@ const parsedPayload = computed(() =>
                     </button>
                 </div>
 
-                <div class="flex-1 overflow-y-auto">
+                <div ref="listContainerEl" class="flex-1 overflow-y-auto">
                     <InfiniteScroll data="logs">
                         <div
                             v-for="log in logs.data"
                             :key="log.sqid"
+                            :ref="(el) => { if (log.sqid === logSelected?.sqid) selectedItemEl = el as HTMLDivElement; }"
                             class="group/log cursor-pointer border-b border-border px-3 py-3 transition-colors hover:bg-accent/40"
                             :class="[
                                 logSelected?.sqid === log.sqid
