@@ -70,6 +70,24 @@ class WebhookController extends Controller
         return redirect()->route('webhooks.index');
     }
 
+    public function markRead(Request $request, string $slug, WebhookLog $log): RedirectResponse
+    {
+        $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();
+        abort_unless($log->webhook_id === $webhook->id, 404);
+
+        $log->update(['read_at' => now()]);
+
+        return back();
+    }
+
+    public function destroyLogs(Request $request, string $slug): RedirectResponse
+    {
+        $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();
+        $webhook->logs()->delete();
+
+        return back();
+    }
+
     public function destroyLog(Request $request, string $slug, WebhookLog $log): RedirectResponse
     {
         $webhook = $request->user()->webhooks()->where('slug', $slug)->firstOrFail();

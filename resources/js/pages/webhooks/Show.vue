@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import {
     destroyLog,
+    destroyLogs,
     index,
+    markRead,
     show,
 } from '@/actions/App/Http/Controllers/WebhookController';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { receive as webhookReceiveUrl } from '@/routes/webhook';
 import { Head, router, setLayoutProps, usePoll } from '@inertiajs/vue3';
 import { Check, Clock, Copy, Globe, Inbox, Trash2 } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import VueJsonPretty from 'vue-json-pretty';
 import 'vue-json-pretty/lib/styles.css';
 
@@ -29,6 +31,7 @@ interface WebhookLog {
     query_params: Record<string, string> | null;
     payload: string | null;
     created_at: string;
+    read_at: string | null;
 }
 
 interface Paginator {
@@ -63,11 +66,40 @@ const selectedLog = computed(
     () => logs.data.find((l) => l.sqid === selectedLogId.value) ?? null,
 );
 
+function markAsRead(sqid: string | null) {
+    if (!sqid) return;
+    const log = logs.data.find((l) => l.sqid === sqid);
+    if (!log || log.read_at) return;
+
+    router
+        .optimistic((props) => ({
+            logs: {
+                ...props.logs,
+                data: props.logs.data.map((l: WebhookLog) =>
+                    l.sqid === sqid
+                        ? { ...l, read_at: new Date().toISOString() }
+                        : l,
+                ),
+            },
+        }))
+        .patch(
+            markRead({ slug: webhook.slug, log: sqid }).url,
+            {},
+            {
+                preserveScroll: true,
+                only: ['logs'],
+            },
+        );
+}
+
 function selectLog(id: string | null) {
     selectedLogId.value = id;
     const base = `/webhooks/${webhook.slug}`;
     window.history.replaceState(null, '', id !== null ? `${base}/${id}` : base);
+    markAsRead(id);
 }
+
+onMounted(() => markAsRead(selectedLogId.value));
 
 watch(
     () => logs.data,
@@ -147,7 +179,8 @@ function copyUrl() {
 function deleteLog(log: WebhookLog) {
     const isSelected = selectedLogId.value === log.sqid;
     const currentIndex = logs.data.findIndex((l) => l.sqid === log.sqid);
-    const next = logs.data[currentIndex + 1] ?? logs.data[currentIndex - 1] ?? null;
+    const next =
+        logs.data[currentIndex + 1] ?? logs.data[currentIndex - 1] ?? null;
 
     if (isSelected) {
         selectLog(next?.sqid ?? null);
@@ -157,10 +190,25 @@ function deleteLog(log: WebhookLog) {
         .optimistic((props) => ({
             logs: {
                 ...props.logs,
-                data: props.logs.data.filter((l: WebhookLog) => l.sqid !== log.sqid),
+                data: props.logs.data.filter(
+                    (l: WebhookLog) => l.sqid !== log.sqid,
+                ),
             },
         }))
         .delete(destroyLog({ slug: webhook.slug, log: log.sqid }).url, {
+            preserveScroll: true,
+            only: ['logs'],
+        });
+}
+
+function deleteAllLogs() {
+    selectLog(null);
+
+    router
+        .optimistic((props) => ({
+            logs: { ...props.logs, data: [] },
+        }))
+        .delete(destroyLogs({ slug: webhook.slug }).url, {
             preserveScroll: true,
             only: ['logs'],
         });
@@ -229,15 +277,41 @@ const parsedPayload = computed(() =>
             <div
                 class="flex w-72 shrink-0 flex-col overflow-hidden border-r border-border"
             >
+                <!-- List header with delete all -->
+                <div
+                    class="flex shrink-0 items-center justify-between border-b border-border px-3 py-2"
+                >
+                    <span class="text-xs font-medium text-muted-foreground"
+                        >Requisições</span
+                    >
+                    <button
+                        type="button"
+                        class="rounded p-0.5 text-xs text-muted-foreground/50 transition-colors hover:text-destructive"
+                        title="Apagar todas"
+                        @click="deleteAllLogs"
+                    >
+                        <Trash2 class="size-3.5" />
+                    </button>
+                </div>
+
                 <div class="flex-1 overflow-y-auto">
                     <div
                         v-for="log in logs.data"
                         :key="log.sqid"
                         class="group/log cursor-pointer border-b border-border px-3 py-3 transition-colors hover:bg-accent/40"
-                        :class="selectedLogId === log.sqid ? 'bg-accent' : ''"
+                        :class="[
+                            selectedLogId === log.sqid ? 'bg-accent' : '',
+                            !log.read_at && selectedLogId !== log.sqid
+                                ? 'bg-green-50'
+                                : '',
+                        ]"
                         @click="selectLog(log.sqid)"
                     >
                         <div class="flex items-center gap-2">
+                            <span
+                                v-if="!log.read_at"
+                                class="size-1.5 shrink-0 rounded-full bg-green-500"
+                            />
                             <span
                                 :class="methodColor(log.method)"
                                 class="inline-flex shrink-0 items-center rounded border px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase"
