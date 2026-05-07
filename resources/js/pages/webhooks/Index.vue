@@ -8,6 +8,12 @@ import Heading from '@/components/Heading.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -187,29 +193,39 @@ function formatDate(date: string) {
                         formatDate(webhook.created_at)
                     }}</span>
 
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        class="size-8"
-                        title="Copiar URL"
-                        @click.stop="copyUrl(webhook)"
-                    >
-                        <Check
-                            v-if="copiedId === webhook.id"
-                            class="size-4 text-green-500"
-                        />
-                        <Copy v-else class="size-4" />
-                    </Button>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger as-child>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    class="size-8"
+                                    @click.stop="copyUrl(webhook)"
+                                >
+                                    <Check
+                                        v-if="copiedId === webhook.id"
+                                        class="size-4 text-green-500"
+                                    />
+                                    <Copy v-else class="size-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{{ copiedId === webhook.id ? 'Copiado!' : 'Copiar URL' }}</TooltipContent>
+                        </Tooltip>
 
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        class="size-8 text-destructive hover:text-destructive"
-                        title="Deletar"
-                        @click.stop="deleteWebhook(webhook)"
-                    >
-                        <Trash2 class="size-4" />
-                    </Button>
+                        <Tooltip>
+                            <TooltipTrigger as-child>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    class="size-8 text-destructive hover:text-destructive"
+                                    @click.stop="deleteWebhook(webhook)"
+                                >
+                                    <Trash2 class="size-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Deletar webhook</TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 </div>
             </div>
         </div>

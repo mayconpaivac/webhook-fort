@@ -9,6 +9,12 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -351,34 +357,51 @@ const parsedPayload = computed(() =>
                 :class="!urlVisible && 'blur-xs select-none'"
                 >{{ webhookUrl }}</code
             >
-            <Button
-                variant="ghost"
-                size="icon"
-                class="size-7 shrink-0 text-muted-foreground"
-                :title="urlVisible ? 'Ocultar URL' : 'Mostrar URL'"
-                @click="toggleUrlVisible"
-            >
-                <EyeOff v-if="urlVisible" class="size-4" />
-                <Eye v-else class="size-4" />
-            </Button>
-            <Button
-                variant="ghost"
-                size="icon"
-                class="size-7 shrink-0"
-                @click="copyUrl"
-            >
-                <Check v-if="copiedUrl" class="size-4 text-green-500" />
-                <Copy v-else class="size-4" />
-            </Button>
-            <Button
-                variant="ghost"
-                size="icon"
-                class="size-7 shrink-0 text-muted-foreground"
-                title="Resetar token"
-                @click="confirmResetToken = true"
-            >
-                <RefreshCw class="size-4" />
-            </Button>
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger as-child>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            class="size-7 shrink-0 text-muted-foreground"
+                            @click="toggleUrlVisible"
+                        >
+                            <EyeOff v-if="urlVisible" class="size-4" />
+                            <Eye v-else class="size-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{{ urlVisible ? 'Ocultar URL' : 'Mostrar URL' }}</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                    <TooltipTrigger as-child>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            class="size-7 shrink-0"
+                            @click="copyUrl"
+                        >
+                            <Check v-if="copiedUrl" class="size-4 text-green-500" />
+                            <Copy v-else class="size-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{{ copiedUrl ? 'Copiado!' : 'Copiar URL' }}</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                    <TooltipTrigger as-child>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            class="size-7 shrink-0 text-muted-foreground"
+                            @click="confirmResetToken = true"
+                        >
+                            <RefreshCw class="size-4" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Gerar novo token</TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
         </div>
 
         <!-- Empty state -->
